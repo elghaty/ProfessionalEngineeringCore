@@ -1,24 +1,25 @@
 package com.electricalengineeringpro.app.core.calculation
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TransformerSizingCalculatorTest {
 
     @Test
-    fun transformer_rating_is_selected_above_required_capacity() {
+    fun selectsStandardTransformerRating() {
 
         val result =
             TransformerSizingCalculator().calculate(
                 TransformerSizingInput(
-                    demandLoadKw = 400.0,
-                    powerFactor = 0.9,
-                    spareCapacity = 0.2
+                    designLoadKW = 400.0,
+                    powerFactor = 0.90,
+                    spareCapacityFactor = 1.15
                 )
             )
 
-        assertTrue(result.requiredKva > 400.0)
-        assertTrue(result.selectedKva >= result.requiredKva)
+        assertTrue(result.requiredKVA > 400.0)
+        assertEquals(630.0, result.recommendedRatingKVA, 0.001)
         assertTrue(result.utilizationPercent > 0.0)
     }
 }
