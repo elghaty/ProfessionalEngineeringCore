@@ -12,17 +12,20 @@ class PowerCalculator {
         powerFactor: Double,
         phase: Phase
     ): PowerResult {
+
         require(powerKw >= 0.0)
         require(voltageV > 0.0)
         require(powerFactor in 0.01..1.0)
 
         val kva = powerKw / powerFactor
+
         val kvar = sqrt(
             (kva * kva - powerKw * powerKw)
                 .coerceAtLeast(0.0)
         )
 
-        val current = when (phase) {
+        val currentA = when (phase) {
+
             Phase.DC ->
                 powerKw * 1000.0 / voltageV
 
@@ -43,7 +46,7 @@ class PowerCalculator {
             activePowerKw = powerKw,
             apparentPowerKva = kva,
             reactivePowerKvar = kvar,
-            currentA = current,
+            currentA = currentA,
             powerFactor = powerFactor
         )
     }
@@ -54,9 +57,8 @@ class PowerCalculator {
         powerFactor: Double,
         phase: Phase
     ): PowerResult {
+
         require(apparentPowerKva >= 0.0)
-        require(voltageV > 0.0)
-        require(powerFactor in 0.01..1.0)
 
         return fromKw(
             powerKw = apparentPowerKva * powerFactor,
