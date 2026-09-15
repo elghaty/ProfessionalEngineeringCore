@@ -1,258 +1,227 @@
-package com.electrical.calculationspro.core.calculators
+package com.electrical.calculationspro.core.calculation
 
-import com.electrical.calculationspro.data.SldConnection
-import com.electrical.calculationspro.data.SldNetwork
-import com.electrical.calculationspro.data.SldNode
-import com.electrical.calculationspro.data.SldNodeType
+import com.electrical.calculationspro.core.model.ElectricalLoad
+import com.electrical.calculationspro.core.model.SldConnection
+import com.electrical.calculationspro.core.model.SldElement
+import com.electrical.calculationspro.core.model.SldElementType
+import com.electrical.calculationspro.core.model.SldNetwork
 
-/**
- * Professional SLD structure generator.
- *
- * This class creates the electrical topology.
- * Electrical calculations are performed by calculators
- * inside ProfessionalEngineeringCore.
- */
 class SldGenerator {
 
-    fun createEmpty(): SldNetwork {
-        return SldNetwork(
-            nodes = emptyList(),
-            connections = emptyList()
-        )
-    }
+    fun createEmpty(): SldNetwork =
+        SldNetwork()
 
-    fun createSource(
+    fun createUtility(
         id: String,
-        name: String,
-        voltage: Double = 400.0,
-        sourceShortCircuitMva: Double = 0.0
-    ): SldNode {
-
-        return SldNode(
+        name: String = "UTILITY",
+        voltageV: Double = 400.0
+    ): SldElement =
+        SldElement(
             id = id,
             name = name,
-            type = SldNodeType.SOURCE,
-            x = 0f,
-            y = 0f,
-            voltage = voltage,
-            sourceShortCircuitMva =
-                sourceShortCircuitMva
+            type = SldElementType.UTILITY,
+            voltageV = voltageV,
+            sourceType =
+                com.electrical.calculationspro.core.model.SourceType.UTILITY
         )
-    }
 
     fun createTransformer(
         id: String,
         name: String,
-        voltage: Double = 400.0,
-        ratedKva: Double,
-        percentZ: Double
-    ): SldNode {
+        ratingKva: Double,
+        voltageV: Double = 400.0,
+        percentZ: Double = 6.0
+    ): SldElement {
+        require(ratingKva > 0.0)
+        require(percentZ > 0.0)
 
-        require(ratedKva > 0.0) {
-            "Transformer rating must be greater than zero."
-        }
-
-        require(percentZ > 0.0) {
-            "Transformer impedance must be greater than zero."
-        }
-
-        return SldNode(
+        return SldElement(
             id = id,
             name = name,
-            type = SldNodeType.TRANSFORMER,
-            x = 0f,
-            y = 0f,
-            voltage = voltage,
-            ratedKva = ratedKva,
-            transformerPercentZ = percentZ
+            type = SldElementType.TRANSFORMER,
+            voltageV = voltageV,
+            transformerKva = ratingKva,
+            transformerPercentZ = percentZ,
+            sourceType =
+                com.electrical.calculationspro.core.model.SourceType.TRANSFORMER
         )
     }
 
     fun createGenerator(
         id: String,
         name: String,
-        voltage: Double = 400.0,
-        ratedKva: Double,
-        xdSubtransient: Double = 0.0
-    ): SldNode {
+        ratingKva: Double,
+        voltageV: Double = 400.0,
+        xdSubtransient: Double = 15.0
+    ): SldElement {
+        require(ratingKva > 0.0)
 
-        require(ratedKva > 0.0) {
-            "Generator rating must be greater than zero."
-        }
-
-        return SldNode(
+        return SldElement(
             id = id,
             name = name,
-            type = SldNodeType.GENERATOR,
-            x = 0f,
-            y = 0f,
-            voltage = voltage,
-            ratedKva = ratedKva,
-            generatorXdSubtransient =
-                xdSubtransient
+            type = SldElementType.GENERATOR,
+            voltageV = voltageV,
+            generatorKva = ratingKva,
+            generatorXdSubtransient = xdSubtransient,
+            sourceType =
+                com.electrical.calculationspro.core.model.SourceType.GENERATOR
         )
     }
 
     fun createBus(
         id: String,
         name: String,
-        voltage: Double = 400.0
-    ): SldNode {
-
-        return SldNode(
+        voltageV: Double = 400.0
+    ): SldElement =
+        SldElement(
             id = id,
             name = name,
-            type = SldNodeType.BUS,
-            x = 0f,
-            y = 0f,
-            voltage = voltage
+            type = SldElementType.BUS,
+            voltageV = voltageV
         )
-    }
 
     fun createPanel(
         id: String,
         name: String,
-        voltage: Double = 400.0
-    ): SldNode {
-
-        return SldNode(
+        type: SldElementType = SldElementType.MDB,
+        voltageV: Double = 400.0
+    ): SldElement =
+        SldElement(
             id = id,
             name = name,
-            type = SldNodeType.PANEL,
-            x = 0f,
-            y = 0f,
-            voltage = voltage
+            type = type,
+            voltageV = voltageV
         )
-    }
 
     fun createLoad(
-        id: String,
-        name: String,
-        loadKw: Double,
-        voltage: Double = 400.0,
-        powerFactor: Double = 0.90,
-        demandFactor: Double = 1.0
-    ): SldNode {
+        load: ElectricalLoad
+    ): SldElement =
+        SldElement(
+            id = load.id,
+            name = load.name,
+            type =
+                when {
+                    load.name.contains("motor", true) ->
+                        SldElementType.MOTOR
 
-        require(loadKw >= 0.0) {
-            "Load power cannot be negative."
-        }
+                    load.name.contains("pump", true) ->
+                        SldElementType.PUMP
 
-        require(powerFactor > 0.0) {
-            "Power factor must be greater than zero."
-        }
-
-        require(powerFactor <= 1.0) {
-            "Power factor cannot exceed 1.0."
-        }
-
-        require(demandFactor >= 0.0) {
-            "Demand factor cannot be negative."
-        }
-
-        require(demandFactor <= 1.0) {
-            "Demand factor cannot exceed 1.0."
-        }
-
-        return SldNode(
-            id = id,
-            name = name,
-            type = SldNodeType.LOAD,
-            x = 0f,
-            y = 0f,
-            voltage = voltage,
-            loadKw = loadKw,
-            powerFactor = powerFactor,
-            demandFactor = demandFactor
+                    else ->
+                        SldElementType.LOAD
+                },
+            powerKw =
+                load.powerKw * load.quantity,
+            voltageV = load.voltageV
         )
-    }
 
     fun connect(
         id: String,
-        from: SldNode,
-        to: SldNode,
-        lengthMeters: Double = 0.0,
+        from: SldElement,
+        to: SldElement,
+        lengthM: Double = 0.0,
         resistanceOhmPerKm: Double = 0.0,
         reactanceOhmPerKm: Double = 0.0,
         cableSizeMm2: Double = 0.0,
         parallelRuns: Int = 1
     ): SldConnection {
 
-        require(lengthMeters >= 0.0) {
-            "Cable length cannot be negative."
-        }
-
-        require(resistanceOhmPerKm >= 0.0) {
-            "Cable resistance cannot be negative."
-        }
-
-        require(reactanceOhmPerKm >= 0.0) {
-            "Cable reactance cannot be negative."
-        }
-
-        require(parallelRuns >= 1) {
-            "Parallel runs must be at least one."
-        }
+        require(lengthM >= 0.0)
+        require(resistanceOhmPerKm >= 0.0)
+        require(reactanceOhmPerKm >= 0.0)
+        require(cableSizeMm2 >= 0.0)
+        require(parallelRuns > 0)
 
         return SldConnection(
             id = id,
-            fromNodeId = from.id,
-            toNodeId = to.id,
-            lengthMeters = lengthMeters,
-            resistanceOhmPerKm =
-                resistanceOhmPerKm,
-            reactanceOhmPerKm =
-                reactanceOhmPerKm,
-            cableSizeMm2 =
-                cableSizeMm2,
-            parallelRuns =
-                parallelRuns
+            fromId = from.id,
+            toId = to.id,
+            lengthM = lengthM
         )
     }
 
     fun build(
-        nodes: List<SldNode>,
+        elements: List<SldElement>,
         connections: List<SldConnection>
     ): SldNetwork {
 
-        require(nodes.isNotEmpty()) {
-            "SLD must contain at least one node."
-        }
+        require(elements.isNotEmpty())
 
         val ids =
-            nodes.map { it.id }
+            elements.map { it.id }
 
-        require(ids.distinct().size == ids.size) {
-            "SLD node IDs must be unique."
-        }
+        require(ids.distinct().size == ids.size)
 
-        val nodeSet =
-            ids.toSet()
+        val validIds = ids.toSet()
 
-        connections.forEach { connection ->
-
-            require(
-                connection.fromNodeId in nodeSet
-            ) {
-                "Connection ${connection.id} references an unknown source node."
-            }
-
-            require(
-                connection.toNodeId in nodeSet
-            ) {
-                "Connection ${connection.id} references an unknown destination node."
-            }
-
-            require(
-                connection.fromNodeId !=
-                    connection.toNodeId
-            ) {
-                "An SLD connection cannot connect a node to itself."
-            }
+        connections.forEach {
+            require(it.fromId in validIds)
+            require(it.toId in validIds)
+            require(it.fromId != it.toId)
         }
 
         return SldNetwork(
-            nodes = nodes,
+            elements = elements,
+            connections = connections
+        )
+    }
+
+    fun createBasicNetwork(
+        loads: List<ElectricalLoad>,
+        sourceVoltageV: Double = 400.0
+    ): SldNetwork {
+
+        val utility =
+            createUtility(
+                id = "UTILITY",
+                voltageV = sourceVoltageV
+            )
+
+        val mdb =
+            createBus(
+                id = "MDB",
+                name = "MDB",
+                voltageV = sourceVoltageV
+            )
+
+        val elements =
+            mutableListOf(
+                utility,
+                mdb
+            )
+
+        val connections =
+            mutableListOf<SldConnection>()
+
+        connections +=
+            connect(
+                id = "UTILITY-MDB",
+                from = utility,
+                to = mdb
+            )
+
+        loads.forEachIndexed { index, load ->
+
+            val element =
+                createLoad(load).copy(
+                    x = 500f,
+                    y = 120f + index * 120f,
+                    parentId = mdb.id
+                )
+
+            elements += element
+
+            connections +=
+                connect(
+                    id = "MDB-${element.id}",
+                    from = mdb,
+                    to = element,
+                    lengthM = load.lengthM
+                )
+        }
+
+        return build(
+            elements = elements,
             connections = connections
         )
     }
