@@ -1,232 +1,115 @@
 package com.electrical.calculationspro.core
 
-import kotlin.math.sqrt
+import com.electrical.calculationspro.core.calculation.DesignSummaryCalculator
+import com.electrical.calculationspro.core.calculation.DiversityCalculator
+import com.electrical.calculationspro.core.calculation.LoadCalculator
+import com.electrical.calculationspro.core.calculation.LoadScheduleCalculator
+import com.electrical.calculationspro.core.calculation.PowerCalculator
+import com.electrical.calculationspro.core.model.ElectricalLoad
+import com.electrical.calculationspro.core.model.Phase
+import com.electrical.calculationspro.core.model.PowerResult
+import com.electrical.calculationspro.core.model.ProjectSummaryResult
 
 /**
- * SINGLE ENGINEERING CORE.
+ * SINGLE ENGINEERING FACADE.
  *
- * All engineering calculations must eventually pass
- * through this class.
+ * This is the only public engineering entry point
+ * that the Android application should use.
  *
- * UI must not contain engineering formulas.
+ * UI and ViewModels must not contain engineering formulas.
+ *
+ * Internal engineering power unit:
+ * kW.
  */
 class ProfessionalEngineeringCore private constructor() {
 
+    private val powerCalculator =
+        PowerCalculator()
+
+    private val loadCalculator =
+        LoadCalculator(
+            powerCalculator = powerCalculator
+        )
+
+    private val loadScheduleCalculator =
+        LoadScheduleCalculator(
+            loadCalculator = loadCalculator
+        )
+
+    private val diversityCalculator =
+        DiversityCalculator()
+
+    private val designSummaryCalculator =
+        DesignSummaryCalculator(
+            loadScheduleCalculator =
+                loadScheduleCalculator
+        )
+
     fun calculatePower(
         powerKw: Double,
-        voltageV: Double,
-        powerFactor: Double,
-        phase: EngineeringPhase
-    ): PowerCalculationResult {
+        voltageV: Double = 400.0,
+        powerFactor: Double = 0.90,
+        phase: Phase = Phase.THREE
+    ): PowerResult {
 
-        require(powerKw >= 0.0)
-        require(voltageV > 0.0)
-        require(powerFactor in 0.01..1.0)
-
-        val kva =
-            powerKw / powerFactor
-
-        val kvar =
-            if (kva >= powerKw) {
-                sqrt(
-                    (kva * kva) -
-                        (powerKw * powerKw)
-                )
-            } else {
-                0.0
-            }
-
-        val current =
-            when (phase) {
-
-                EngineeringPhase.DC ->
-                    powerKw * 1000.0 /
-                        voltageV
-
-                EngineeringPhase.SINGLE ->
-                    kva * 1000.0 /
-                        voltageV
-
-                EngineeringPhase.TWO_PHASE ->
-                    kva * 1000.0 /
-                        (2.0 * voltageV)
-
-                EngineeringPhase.THREE ->
-                    kva * 1000.0 /
-                        (sqrt(3.0) * voltageV)
-            }
-
-        return PowerCalculationResult(
-            activePowerKw = powerKw,
-            apparentPowerKva = kva,
-            reactivePowerKvar = kvar,
-            currentA = current,
-            powerFactor = powerFactor
+        return powerCalculator.fromKw(
+            powerKw = powerKw,
+            voltageV = voltageV,
+            powerFactor = powerFactor,
+            phase = phase
         )
     }
 
     fun calculateLoad(
-        load: EngineeringLoad
-    ): LoadCalculationResult {
+        load: ElectricalLoad
+    ) =
+        loadCalculator.calculate(load)
 
-        require(load.powerKw >= 0.0)
-        require(load.quantity > 0)
-        require(load.voltageV > 0.0)
-        require(load.powerFactor in 0.01..1.0)
-        require(load.efficiency in 0.01..1.0)
-        require(load.demandFactor in 0.0..1.0)
-        require(load.diversityFactor > 0.0)
+    fun calculateLoadSchedule(
+        loads: List<ElectricalLoad>
+    ) =
+        loadScheduleCalculator.calculate(loads)
 
-        val connected =
-            load.powerKw *
-                load.quantity
-
-        val demand =
-            connected *
-                load.demandFactor
-
-        val design =
-            demand /
-                load.diversityFactor
-
-        val electricalInput =
-            design /
-                load.efficiency
-
-        val power =
-            calculatePower(
-                powerKw = electricalInput,
-                voltageV = load.voltageV,
-                powerFactor = load.powerFactor,
-                phase = load.phase
-            )
-
-        return LoadCalculationResult(
-            connectedLoadKw = connected,
-            demandLoadKw = demand,
-            designLoadKw = design,
-            apparentPowerKva =
-                power.apparentPowerKva,
-            designCurrentA =
-                power.currentA
+    fun calculateDiversity(
+        loads: List<com.electrical.calculationspro.core.calculation.DiversityLoad>,
+        additionalDiversityFactor: Double = 1.0
+    ) =
+        diversityCalculator.calculate(
+            loads = loads,
+            additionalDiversityFactor =
+                additionalDiversityFactor
         )
-    }
 
     fun calculateProjectSummary(
-        project: EngineeringProject,
+        loads: List<ElectricalLoad>,
+        voltageV: Double = 400.0,
+        powerFactor: Double = 0.90,
         designMargin: Double = 1.15
     ): ProjectSummaryResult {
 
-        require(project.voltageV > 0.0)
-        require(project.powerFactor in 0.01..1.0)
-        require(designMargin >= 1.0)
-
-        val results =
-            project.loads.map {
-                calculateLoad(it)
-            }
-
-        val connected =
-            results.sumOf {
-                it.connectedLoadKw
-            }
-
-        val demand =
-            results.sumOf {
-                it.demandLoadKw
-            }
-
-        val design =
-            results.sumOf {
-                it.designLoadKw
-            }
-
-        val kva =
-            results.sumOf {
-                it.apparentPowerKva
-            } * designMargin
-
-        val mainCurrent =
-            if (kva > 0.0) {
-                kva * 1000.0 /
-                    (sqrt(3.0) *
-                        project.voltageV)
-            } else {
-                0.0
-            }
-
-        val transformerRatings =
-            listOf(
-                50.0,
-                100.0,
-                160.0,
-                250.0,
-                315.0,
-                400.0,
-                500.0,
-                630.0,
-                800.0,
-                1000.0,
-                1250.0,
-                1600.0,
-                2000.0,
-                2500.0,
-                3150.0,
-                4000.0,
-                5000.0
+        val result =
+            designSummaryCalculator.calculate(
+                loads = loads,
+                voltageV = voltageV,
+                powerFactor = powerFactor,
+                designMargin = designMargin
             )
-
-        val transformer =
-            transformerRatings.firstOrNull {
-                it >= kva
-            } ?: transformerRatings.last()
-
-        val breakerRatings =
-            listOf(
-                16.0,
-                20.0,
-                25.0,
-                32.0,
-                40.0,
-                50.0,
-                63.0,
-                80.0,
-                100.0,
-                125.0,
-                160.0,
-                200.0,
-                250.0,
-                315.0,
-                400.0,
-                500.0,
-                630.0,
-                800.0,
-                1000.0,
-                1250.0,
-                1600.0,
-                2000.0,
-                2500.0,
-                3200.0,
-                4000.0,
-                5000.0,
-                6300.0
-            )
-
-        val breaker =
-            breakerRatings.firstOrNull {
-                it >= mainCurrent
-            } ?: breakerRatings.last()
 
         return ProjectSummaryResult(
-            connectedLoadKw = connected,
-            demandLoadKw = demand,
-            designLoadKw = design,
-            apparentPowerKva = kva,
-            mainCurrentA = mainCurrent,
+            connectedLoadKw =
+                result.connectedLoadKw,
+            demandLoadKw =
+                result.demandLoadKw,
+            designLoadKw =
+                result.designLoadKw,
+            apparentPowerKva =
+                result.apparentPowerKva,
+            mainCurrentA =
+                result.mainCurrentA,
             recommendedTransformerKva =
-                transformer,
+                result.recommendedTransformerKva,
             recommendedMainBreakerA =
-                breaker
+                result.recommendedMainBreakerA
         )
     }
 
