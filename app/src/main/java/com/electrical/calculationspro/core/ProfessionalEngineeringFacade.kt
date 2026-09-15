@@ -8,12 +8,12 @@ import com.electrical.calculationspro.core.calculators.ShortCircuitResult
 import com.electrical.calculationspro.data.SldConnection
 import com.electrical.calculationspro.data.SldNetwork
 import com.electrical.calculationspro.data.SldNode
+import com.electrical.calculationspro.data.SldShortCircuitStudy
 
 /**
  * Single public engineering gateway.
  *
- * UI should communicate with engineering calculations through
- * this facade instead of directly implementing formulas.
+ * UI communicates with the engineering system through this facade.
  */
 class ProfessionalEngineeringFacade(
     private val core: ProfessionalEngineeringCore =
@@ -27,8 +27,7 @@ class ProfessionalEngineeringFacade(
 
         return core.diversity.calculate(
             loads = loads,
-            additionalDiversityFactor =
-                diversityFactor
+            additionalDiversityFactor = diversityFactor
         )
     }
 
@@ -49,25 +48,29 @@ class ProfessionalEngineeringFacade(
         return core.shortCircuit.calculate(
             ShortCircuitInput(
                 voltageV = voltageV,
-                sourceShortCircuitKA =
-                    sourceShortCircuitKA,
-                sourceShortCircuitMVA =
-                    sourceShortCircuitMVA,
-                transformerKVA =
-                    transformerKVA,
-                transformerPercentZ =
-                    transformerPercentZ,
-                cableLengthM =
-                    cableLengthM,
+                sourceShortCircuitKA = sourceShortCircuitKA,
+                sourceShortCircuitMVA = sourceShortCircuitMVA,
+                transformerKVA = transformerKVA,
+                transformerPercentZ = transformerPercentZ,
+                cableLengthM = cableLengthM,
                 cableResistanceOhmPerKm =
                     cableResistanceOhmPerKm,
                 cableReactanceOhmPerKm =
                     cableReactanceOhmPerKm,
-                parallelRuns =
-                    parallelRuns,
-                faultType =
-                    faultType
+                parallelRuns = parallelRuns,
+                faultType = faultType
             )
+        )
+    }
+
+    fun calculateSldShortCircuit(
+        network: SldNetwork,
+        voltageFactor: Double = 1.05
+    ): SldShortCircuitStudy {
+
+        return core.sldShortCircuit.calculate(
+            network = network,
+            voltageFactor = voltageFactor
         )
     }
 
