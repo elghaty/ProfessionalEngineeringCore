@@ -13,8 +13,7 @@ data class ElectricalNetworkResult(
 )
 
 class ElectricalNetworkCalculator(
-    private val summary:
-        DesignSummaryCalculator =
+    private val summary: DesignSummaryCalculator =
         DesignSummaryCalculator()
 ) {
 
@@ -32,16 +31,11 @@ class ElectricalNetworkCalculator(
             )
 
         return ElectricalNetworkResult(
-            totalConnectedKw =
-                result.connectedLoadKw,
-            totalDemandKw =
-                result.demandLoadKw,
-            totalDesignKw =
-                result.designLoadKw,
-            totalKva =
-                result.designKva,
-            mainCurrentA =
-                result.designCurrentA,
+            totalConnectedKw = result.connectedKw,
+            totalDemandKw = result.demandKw,
+            totalDesignKw = result.designKw,
+            totalKva = result.designKva,
+            mainCurrentA = result.designCurrentA,
             recommendedTransformerKva =
                 result.recommendedTransformerKva,
             recommendedMainBreakerA =
