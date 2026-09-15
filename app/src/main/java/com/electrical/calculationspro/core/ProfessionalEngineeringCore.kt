@@ -77,7 +77,9 @@ class ProfessionalEngineeringCore private constructor() {
         ProtectionCalculator()
 
     val panels =
-        PanelCalculator()
+        PanelCalculator(
+            breaker = breakers
+        )
 
     val designSummary =
         DesignSummaryCalculator(
@@ -103,14 +105,11 @@ class ProfessionalEngineeringCore private constructor() {
         )
 
     val sld =
-        SldGenerator(
-            loadCalculator = loads,
-            shortCircuit = shortCircuit
-        )
+        SldGenerator()
 
     val sldShortCircuit =
         SldShortCircuitCalculator(
-            shortCircuit = shortCircuit
+            shortCircuitCalculator = shortCircuit
         )
 
     companion object {
