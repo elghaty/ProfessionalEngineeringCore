@@ -10,20 +10,13 @@ data class NetworkDesignResult(
 )
 
 class DesignNetworkCalculator(
-    private val network:
-        ElectricalNetworkCalculator =
+    private val network: ElectricalNetworkCalculator =
         ElectricalNetworkCalculator(),
-
-    private val schedule:
-        LoadScheduleCalculator =
+    private val schedule: LoadScheduleCalculator =
         LoadScheduleCalculator(),
-
-    private val mdb:
-        MdbCalculator =
+    private val mdb: MdbCalculator =
         MdbCalculator(),
-
-    private val transformer:
-        TransformerSizingCalculator =
+    private val transformer: TransformerSizingCalculator =
         TransformerSizingCalculator()
 ) {
 
@@ -54,8 +47,7 @@ class DesignNetworkCalculator(
 
         val transformerResult =
             transformer.calculate(
-                requiredKva =
-                    networkResult.totalKva
+                requiredKva = networkResult.totalKva
             )
 
         return NetworkDesignResult(
