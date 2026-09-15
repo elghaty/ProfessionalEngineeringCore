@@ -3,30 +3,45 @@ package com.electrical.calculationspro.core.calculation
 import com.electrical.calculationspro.core.model.CableResult
 import com.electrical.calculationspro.core.model.ConductorMaterial
 import com.electrical.calculationspro.core.model.ElectricalLoad
-import com.electrical.calculationspro.core.model.Phase
-import kotlin.math.sqrt
+import com.electrical.calculationspro.core.model.InstallationMethod
 
 class CableCalculator(
-    private val power: PowerCalculator =
-        PowerCalculator(),
-    private val voltageDrop:
+    private val loadCalculator:
+        LoadCalculator = LoadCalculator(),
+
+    private val voltageDropCalculator:
         VoltageDropCalculator =
         VoltageDropCalculator(),
-    private val shortCircuit:
+
+    private val shortCircuitCalculator:
         ShortCircuitCalculator =
         ShortCircuitCalculator(),
-    private val breaker:
+
+    private val breakerCalculator:
         BreakerCalculator =
         BreakerCalculator()
 ) {
 
-    private val sections =
+    private val sectionsMm2 =
         listOf(
-            1.5, 2.5, 4.0, 6.0,
-            10.0, 16.0, 25.0, 35.0,
-            50.0, 70.0, 95.0, 120.0,
-            150.0, 185.0, 240.0,
-            300.0, 400.0, 500.0,
+            1.5,
+            2.5,
+            4.0,
+            6.0,
+            10.0,
+            16.0,
+            25.0,
+            35.0,
+            50.0,
+            70.0,
+            95.0,
+            120.0,
+            150.0,
+            185.0,
+            240.0,
+            300.0,
+            400.0,
+            500.0,
             630.0
         )
 
@@ -34,52 +49,60 @@ class CableCalculator(
         load: ElectricalLoad,
         maximumVoltageDropPercent: Double = 4.0,
         ambientFactor: Double = 1.0,
-        groupingFactor: Double = 1.0
+        groupingFactor: Double = 1.0,
+        sourceShortCircuitMva: Double = 1000.0
     ): CableResult {
 
+        require(maximumVoltageDropPercent >= 0.0)
         require(ambientFactor > 0.0)
         require(groupingFactor > 0.0)
+        require(sourceShortCircuitMva >= 0.0)
 
         val loadResult =
-            com.electrical.calculationspro
-                .core.calculation.LoadCalculator()
-                .calculate(load)
+            loadCalculator.calculate(load)
 
         val designCurrent =
             loadResult.currentA
 
-        for (section in sections) {
+        for (section in sectionsMm2) {
 
             val baseAmpacity =
                 baseAmpacity(
-                    section,
-                    load.material,
-                    load.installationMethod
+                    section = section,
+                    material = load.material,
+                    method = load.installationMethod
                 )
 
-            val corrected =
+            val correctedAmpacity =
                 baseAmpacity *
                     ambientFactor *
                     groupingFactor
 
-            if (corrected < designCurrent) {
+            if (
+                correctedAmpacity <
+                designCurrent
+            ) {
                 continue
             }
 
-            val r =
+            val resistance =
                 resistance(
-                    section,
-                    load.material
+                    section = section,
+                    material = load.material
                 )
 
-            val x = 0.08
+            val reactance =
+                reactance(
+                    section = section,
+                    method = load.installationMethod
+                )
 
-            val vd =
-                voltageDrop.calculate(
+            val voltageDrop =
+                voltageDropCalculator.calculate(
                     currentA = designCurrent,
                     lengthM = load.lengthM,
-                    resistanceOhmPerKm = r,
-                    reactanceOhmPerKm = x,
+                    resistanceOhmPerKm = resistance,
+                    reactanceOhmPerKm = reactance,
                     voltageV = load.voltageV,
                     powerFactor = load.powerFactor,
                     phase = load.phase,
@@ -87,89 +110,90 @@ class CableCalculator(
                         maximumVoltageDropPercent
                 )
 
-            if (!vd.withinLimit) {
+            if (!voltageDrop.withinLimit) {
                 continue
             }
 
             val fault =
-                shortCircuit.fromSourceFaultLevel(
+                shortCircuitCalculator.fromSourceFaultLevel(
                     voltageV = load.voltageV,
-                    sourceFaultMva = 1000.0
+                    sourceShortCircuitMva =
+                        sourceShortCircuitMva,
+                    cableLengthM = load.lengthM,
+                    cableResistanceOhmPerKm =
+                        resistance,
+                    cableReactanceOhmPerKm =
+                        reactance
                 )
 
             val protection =
-                breaker.calculate(
+                breakerCalculator.calculate(
                     designCurrentA =
                         designCurrent,
                     cableCapacityA =
-                        corrected,
+                        correctedAmpacity,
                     shortCircuitKA =
-                        fault.initialSymmetricalCurrentKA
+                        fault.faultCurrentKA
                 )
+
+            val warnings =
+                mutableListOf<String>()
+
+            warnings +=
+                protection.warnings
+
+            if (!voltageDrop.withinLimit) {
+                warnings +=
+                    "Voltage drop exceeds the specified limit."
+            }
 
             return CableResult(
                 sectionMm2 = section,
                 designCurrentA = designCurrent,
                 baseAmpacityA = baseAmpacity,
-                correctedAmpacityA = corrected,
+                correctedAmpacityA =
+                    correctedAmpacity,
                 voltageDropPercent =
-                    vd.dropPercent,
+                    voltageDrop.dropPercent,
                 voltageDropVolts =
-                    vd.dropVolts,
+                    voltageDrop.dropVolts,
                 breakerRatingA =
                     protection.ratedCurrentA,
                 shortCircuitCurrentKA =
-                    fault.initialSymmetricalCurrentKA,
+                    fault.faultCurrentKA,
                 acceptable =
-                    protection.acceptable,
-                warnings =
-                    protection.warnings
+                    protection.acceptable &&
+                        voltageDrop.withinLimit &&
+                        correctedAmpacity >=
+                        designCurrent,
+                warnings = warnings
             )
         }
 
-        val last = sections.last()
-
-        val base =
-            baseAmpacity(
-                last,
-                load.material,
-                load.installationMethod
-            )
-
-        val corrected =
-            base *
-                ambientFactor *
-                groupingFactor
-
-        val vd =
-            voltageDrop.calculate(
-                currentA = designCurrent,
-                lengthM = load.lengthM,
-                resistanceOhmPerKm =
-                    resistance(
-                        last,
-                        load.material
-                    ),
-                reactanceOhmPerKm = 0.08,
-                voltageV = load.voltageV,
-                powerFactor = load.powerFactor,
-                phase = load.phase,
-                maximumPercent =
-                    maximumVoltageDropPercent
-            )
-
         return CableResult(
-            sectionMm2 = last,
-            designCurrentA = designCurrent,
-            baseAmpacityA = base,
-            correctedAmpacityA = corrected,
-            voltageDropPercent =
-                vd.dropPercent,
-            voltageDropVolts =
-                vd.dropVolts,
+            sectionMm2 =
+                sectionsMm2.last(),
+
+            designCurrentA =
+                designCurrent,
+
+            baseAmpacityA =
+                baseAmpacity(
+                    sectionsMm2.last(),
+                    load.material,
+                    load.installationMethod
+                ),
+
+            correctedAmpacityA = 0.0,
+
+            voltageDropPercent = 0.0,
+            voltageDropVolts = 0.0,
+
             breakerRatingA = 0.0,
             shortCircuitCurrentKA = 0.0,
+
             acceptable = false,
+
             warnings =
                 listOf(
                     "No standard cable section satisfies all design requirements."
@@ -184,6 +208,7 @@ class CableCalculator(
 
         val resistivity =
             when (material) {
+
                 ConductorMaterial.COPPER ->
                     18.0
 
@@ -191,18 +216,44 @@ class CableCalculator(
                     29.0
             }
 
-        return resistivity / section
+        return resistivity /
+            section
+    }
+
+    private fun reactance(
+        section: Double,
+        method: InstallationMethod
+    ): Double {
+
+        return when (method) {
+
+            InstallationMethod.FREE_AIR ->
+                0.075
+
+            InstallationMethod.CABLE_TRAY ->
+                0.080
+
+            InstallationMethod.LADDER ->
+                0.080
+
+            InstallationMethod.DIRECT_BURIED ->
+                0.085
+
+            InstallationMethod.CONDUIT ->
+                0.090
+
+            InstallationMethod.TRUNKING ->
+                0.090
+        }
     }
 
     private fun baseAmpacity(
         section: Double,
         material: ConductorMaterial,
-        method:
-            com.electrical.calculationspro
-                .core.model.InstallationMethod
+        method: InstallationMethod
     ): Double {
 
-        val copper =
+        val copperAmpacity =
             mapOf(
                 1.5 to 18.0,
                 2.5 to 24.0,
@@ -225,42 +276,42 @@ class CableCalculator(
                 630.0 to 746.0
             )
 
-        val aluminiumFactor =
-            0.82
+        val materialFactor =
+            when (material) {
+
+                ConductorMaterial.COPPER ->
+                    1.0
+
+                ConductorMaterial.ALUMINUM ->
+                    0.82
+            }
 
         val installationFactor =
             when (method) {
-                com.electrical.calculationspro
-                    .core.model.InstallationMethod.FREE_AIR ->
+
+                InstallationMethod.FREE_AIR ->
                     1.15
 
-                com.electrical.calculationspro
-                    .core.model.InstallationMethod.CABLE_TRAY ->
+                InstallationMethod.CABLE_TRAY ->
                     1.05
 
-                com.electrical.calculationspro
-                    .core.model.InstallationMethod.LADDER ->
+                InstallationMethod.LADDER ->
                     1.10
 
-                com.electrical.calculationspro
-                    .core.model.InstallationMethod.DIRECT_BURIED ->
+                InstallationMethod.DIRECT_BURIED ->
                     0.92
 
-                else ->
-                    1.0
+                InstallationMethod.CONDUIT ->
+                    1.00
+
+                InstallationMethod.TRUNKING ->
+                    1.00
             }
 
         return (
-            copper[section] ?: 0.0
+            copperAmpacity[section] ?: 0.0
             ) *
-            if (
-                material ==
-                ConductorMaterial.ALUMINUM
-            ) {
-                aluminiumFactor
-            } else {
-                1.0
-            } *
+            materialFactor *
             installationFactor
     }
 }
