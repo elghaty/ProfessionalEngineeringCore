@@ -5,14 +5,17 @@ data class ProtectionInput(
     val cableCapacityA: Double,
     val shortCircuitCurrentKA: Double,
     val breakerRatingA: Double,
-    val breakerIcuKA: Double
+    val breakerIcuKA: Double,
+    val breakerIcsKA: Double = 0.0
 )
 
 data class ProtectionResult(
-    val overloadProtectionOk: Boolean,
-    val shortCircuitProtectionOk: Boolean,
-    val cableProtectionOk: Boolean,
-    val overallOk: Boolean,
+    val overloadProtected: Boolean,
+    val cableProtected: Boolean,
+    val shortCircuitProtected: Boolean,
+    val breakingCapacityAdequate: Boolean,
+    val overallAcceptable: Boolean,
+    val utilizationPercent: Double,
     val warnings: List<String>
 )
 
@@ -22,48 +25,85 @@ class ProtectionCalculator {
         input: ProtectionInput
     ): ProtectionResult {
 
-        require(input.designCurrentA >= 0.0)
-        require(input.cableCapacityA >= 0.0)
-        require(input.shortCircuitCurrentKA >= 0.0)
-        require(input.breakerRatingA >= 0.0)
-        require(input.breakerIcuKA >= 0.0)
+        validate(input)
 
-        val overloadOk =
-            input.breakerRatingA >= input.designCurrentA
+        val overload =
+            input.breakerRatingA >=
+                input.designCurrentA
 
-        val cableOk =
-            input.breakerRatingA <= input.cableCapacityA
+        val cable =
+            input.cableCapacityA <= 0.0 ||
+                input.breakerRatingA <=
+                input.cableCapacityA
 
-        val shortCircuitOk =
-            input.breakerIcuKA >=
+        val shortCircuit =
+            input.shortCircuitCurrentKA <= 0.0 ||
+                input.breakerIcuKA >=
                 input.shortCircuitCurrentKA
 
-        val warnings = mutableListOf<String>()
+        val ics =
+            input.shortCircuitCurrentKA <= 0.0 ||
+                input.breakerIcsKA <= 0.0 ||
+                input.breakerIcsKA >=
+                input.shortCircuitCurrentKA
 
-        if (!overloadOk) {
+        val utilization =
+            if (input.breakerRatingA > 0.0) {
+                input.designCurrentA /
+                    input.breakerRatingA *
+                    100.0
+            } else {
+                0.0
+            }
+
+        val warnings =
+            mutableListOf<String>()
+
+        if (!overload) {
             warnings +=
                 "Breaker rated current is below design current."
         }
 
-        if (!cableOk) {
+        if (!cable) {
             warnings +=
-                "Breaker rated current exceeds cable capacity."
+                "Breaker rating exceeds cable capacity."
         }
 
-        if (!shortCircuitOk) {
+        if (!shortCircuit) {
             warnings +=
                 "Breaker Icu is below prospective short-circuit current."
         }
 
+        if (!ics) {
+            warnings +=
+                "Breaker Ics is below prospective short-circuit current."
+        }
+
         return ProtectionResult(
-            overloadProtectionOk = overloadOk,
-            shortCircuitProtectionOk = shortCircuitOk,
-            cableProtectionOk = cableOk,
-            overallOk =
-                overloadOk &&
-                    cableOk &&
-                    shortCircuitOk,
+            overloadProtected = overload,
+            cableProtected = cable,
+            shortCircuitProtected = shortCircuit,
+            breakingCapacityAdequate =
+                shortCircuit && ics,
+            overallAcceptable =
+                overload &&
+                    cable &&
+                    shortCircuit &&
+                    ics,
+            utilizationPercent =
+                utilization,
             warnings = warnings
         )
+    }
+
+    private fun validate(
+        input: ProtectionInput
+    ) {
+        require(input.designCurrentA >= 0.0)
+        require(input.cableCapacityA >= 0.0)
+        require(input.shortCircuitCurrentKA >= 0.0)
+        require(input.breakerRatingA > 0.0)
+        require(input.breakerIcuKA >= 0.0)
+        require(input.breakerIcsKA >= 0.0)
     }
 }
