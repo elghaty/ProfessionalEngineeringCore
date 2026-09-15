@@ -1,43 +1,23 @@
 plugins {
-    id("com.android.application")
+    id("com.android.library")
     id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.devtools.ksp")
-}
-
-kotlin {
-    jvmToolchain(17)
 }
 
 android {
-    namespace = "com.electrical.calculationspro"
+    namespace = "com.electrical.calculationspro.core"
 
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.electrical.calculationspro"
-
         minSdk = 24
-        targetSdk = 35
-
-        versionCode =
-            project.findProperty("versionCode")
-                ?.toString()
-                ?.toIntOrNull()
-                ?: System.getenv("VERSION_CODE")
-                    ?.toIntOrNull()
-                ?: 1
-
-        versionName =
-            project.findProperty("versionName")
-                ?.toString()
-                ?: System.getenv("VERSION_NAME")
-                ?: "1.0"
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility =
+            JavaVersion.VERSION_17
+
+        targetCompatibility =
+            JavaVersion.VERSION_17
     }
 
     kotlinOptions {
@@ -45,42 +25,21 @@ android {
     }
 
     buildFeatures {
-        compose = true
-        buildConfig = true
+        compose = false
+        buildConfig = false
     }
 
-    buildTypes {
-        debug {
-            isMinifyEnabled = false
-            isShrinkResources = false
-        }
-
-        release {
-            isMinifyEnabled = false
-            isShrinkResources = false
-        }
+    publishing {
+        singleVariant("release")
     }
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.15.0")
-
-    implementation("androidx.activity:activity-compose:1.10.0")
-
-    implementation("androidx.compose.ui:ui:1.7.6")
-    implementation("androidx.compose.material3:material3:1.3.1")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.7.6")
-
-    debugImplementation(
-        "androidx.compose.ui:ui-tooling:1.7.6"
-    )
-
     implementation(
-        "androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7"
+        "androidx.core:core-ktx:1.15.0"
     )
 
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-
-    ksp("androidx.room:room-compiler:2.6.1")
+    testImplementation(
+        "junit:junit:4.13.2"
+    )
 }
