@@ -27,20 +27,24 @@ class VoltageDropCalculator {
 
         val sinPhi =
             sqrt(
-                (1.0 -
-                    powerFactor * powerFactor)
-                    .coerceAtLeast(0.0)
+                (
+                    1.0 -
+                        powerFactor *
+                        powerFactor
+                    ).coerceAtLeast(0.0)
             )
 
         val resistance =
             resistanceOhmPerKm *
-                lengthM / 1000.0
+                lengthM /
+                1000.0
 
         val reactance =
             reactanceOhmPerKm *
-                lengthM / 1000.0
+                lengthM /
+                1000.0
 
-        val impedanceDrop =
+        val dropVolts =
             when (phase) {
 
                 Phase.DC ->
@@ -52,36 +56,44 @@ class VoltageDropCalculator {
                     2.0 *
                         currentA *
                         (
-                            resistance * powerFactor +
-                                reactance * sinPhi
+                            resistance *
+                                powerFactor +
+                                reactance *
+                                sinPhi
                             )
 
                 Phase.TWO ->
                     2.0 *
                         currentA *
                         (
-                            resistance * powerFactor +
-                                reactance * sinPhi
+                            resistance *
+                                powerFactor +
+                                reactance *
+                                sinPhi
                             )
 
                 Phase.THREE ->
                     sqrt(3.0) *
                         currentA *
                         (
-                            resistance * powerFactor +
-                                reactance * sinPhi
+                            resistance *
+                                powerFactor +
+                                reactance *
+                                sinPhi
                             )
             }
 
-        val percent =
-            impedanceDrop /
+        val dropPercent =
+            dropVolts /
                 voltageV *
                 100.0
 
         return VoltageDropResult(
-            dropVolts = impedanceDrop,
-            dropPercent = percent,
-            withinLimit = percent <= maximumPercent
+            dropVolts = dropVolts,
+            dropPercent = dropPercent,
+            withinLimit =
+                dropPercent <=
+                    maximumPercent
         )
     }
 }
