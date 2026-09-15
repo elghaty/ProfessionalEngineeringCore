@@ -1,227 +1,220 @@
 package com.electrical.calculationspro.core.sld
 
 import com.electrical.calculationspro.core.calculation.LoadCalculator
-import com.electrical.calculationspro.core.calculation.ShortCircuitCalculator
+import com.electrical.calculationspro.core.calculation.LoadResult
+import com.electrical.calculationspro.core.calculation.SldShortCircuitCalculator
 import com.electrical.calculationspro.core.model.ElectricalLoad
 import com.electrical.calculationspro.core.model.SldElement
 import com.electrical.calculationspro.core.model.SldElementResult
 import com.electrical.calculationspro.core.model.SldElementType
 import com.electrical.calculationspro.core.model.SldNetwork
 import com.electrical.calculationspro.core.model.SldResult
-import kotlin.math.sqrt
 
 class SldGenerator(
     private val loadCalculator:
         LoadCalculator =
         LoadCalculator(),
 
-    private val shortCircuit:
-        ShortCircuitCalculator =
-        ShortCircuitCalculator()
+    private val shortCircuitCalculator:
+        SldShortCircuitCalculator =
+        SldShortCircuitCalculator()
 ) {
 
     fun generate(
         network: SldNetwork,
-        sourceFaultMva: Double = 1000.0
+        sourceFaultMva: Double = 1000.0,
+        voltageFactor: Double = 1.05
     ): SldResult {
 
-        require(sourceFaultMva > 0.0)
+        require(network.elements.isNotEmpty())
 
-        val resultMap =
-            mutableMapOf<String, SldElementResult>()
+        val loadResults =
+            linkedMapOf<String, LoadResult>()
 
-        val loads =
-            network.elements.filter {
-                it.type == SldElementType.LOAD ||
-                    it.type == SldElementType.MOTOR ||
-                    it.type == SldElementType.PUMP
+        network.elements.forEach { element ->
+
+            if (
+                element.type !=
+                SldElementType.LOAD &&
+                element.type !=
+                SldElementType.MOTOR &&
+                element.type !=
+                SldElementType.PUMP
+            ) {
+                return@forEach
             }
-
-        var totalConnectedKw = 0.0
-        var totalDemandKw = 0.0
-
-        loads.forEach { element ->
 
             val load =
                 ElectricalLoad(
                     id = element.id,
                     name = element.name,
                     powerKw = element.powerKw,
-                    voltageV = element.voltageV
+                    quantity = element.quantity,
+                    voltageV = element.voltageV,
+                    phase = element.phase,
+                    powerFactor =
+                        element.powerFactor,
+                    efficiency =
+                        element.efficiency,
+                    demandFactor =
+                        element.demandFactor,
+                    diversityFactor =
+                        element.diversityFactor,
+                    lengthM =
+                        element.cableLengthM
                 )
 
-            val loadResult =
-                loadCalculator.calculate(load)
-
-            totalConnectedKw +=
-                loadResult.connectedKw
-
-            totalDemandKw +=
-                loadResult.demandKw
-
-            val fault =
-                shortCircuit.fromSourceFaultLevel(
-                    voltageV =
-                        element.voltageV,
-                    sourceFaultMva =
-                        sourceFaultMva
-                )
-
-            resultMap[element.id] =
-                SldElementResult(
-                    elementId =
-                        element.id,
-                    powerKw =
-                        loadResult.designKw,
-                    apparentPowerKva =
-                        loadResult.apparentPowerKva,
-                    currentA =
-                        loadResult.currentA,
-                    shortCircuitKA =
-                        fault.initialSymmetricalCurrentKA
+            loadResults[element.id] =
+                loadCalculator.calculate(
+                    load
                 )
         }
 
-        val source =
-            network.elements.firstOrNull {
-                it.sourceType != null
+        val shortCircuit =
+            shortCircuitCalculator.calculate(
+                network =
+                    network,
+
+                sourceShortCircuitMva =
+                    sourceFaultMva,
+
+                voltageFactor =
+                    voltageFactor
+            )
+
+        val elementResults =
+            network.elements.mapNotNull { element ->
+
+                val load =
+                    loadResults[element.id]
+
+                if (load == null) {
+                    null
+                } else {
+                    SldElementResult(
+                        elementId =
+                            element.id,
+
+                        powerKw =
+                            load.designKw,
+
+                        apparentPowerKva =
+                            load.apparentPowerKva,
+
+                        currentA =
+                            load.currentA,
+
+                        shortCircuitKA =
+                            shortCircuit.results[
+                                element.id
+                            ]?.faultCurrentKA
+                                ?: 0.0
+                    )
+                }
             }
+
+        val totalLoad =
+            elementResults.sumOf {
+                it.powerKw
+            }
+
+        val totalDemand =
+            elementResults.sumOf {
+                it.powerKw
+            }
+
+        val source =
+            findSource(network)
 
         val sourceVoltage =
-            source?.voltageV ?: 400.0
+            source?.voltageV
+                ?: 400.0
+
+        val sourcePowerFactor =
+            source?.powerFactor
+                ?: 0.90
 
         val sourceCurrent =
-            if (totalDemandKw <= 0.0) {
-                0.0
-            } else {
-                totalDemandKw * 1000.0 /
+            if (totalDemand > 0.0) {
+                totalDemand * 1000.0 /
                     (
-                        sqrt(3.0) *
+                        kotlin.math.sqrt(3.0) *
                             sourceVoltage *
-                            0.90
+                            sourcePowerFactor
                         )
+            } else {
+                0.0
             }
-
-        val sourceFault =
-            shortCircuit.fromSourceFaultLevel(
-                voltageV = sourceVoltage,
-                sourceFaultMva = sourceFaultMva
-            )
 
         return SldResult(
             elements =
-                resultMap.values.toList(),
+                elementResults,
+
             totalLoadKw =
-                totalConnectedKw,
+                totalLoad,
+
             totalDemandKw =
-                totalDemandKw,
+                totalDemand,
+
             sourceCurrentA =
                 sourceCurrent,
+
             sourceFaultCurrentKA =
-                sourceFault.initialSymmetricalCurrentKA
+                shortCircuit.maximumFaultCurrentKA
         )
     }
 
-    fun createBasicNetwork(
-        loads: List<ElectricalLoad>,
-        sourceVoltageV: Double = 400.0
-    ): SldNetwork {
+    fun createBasicNetwork(): SldNetwork {
 
-        val source =
+        val utility =
             SldElement(
                 id = "SOURCE",
-                name = "UTILITY",
+                name = "Utility",
                 type = SldElementType.UTILITY,
                 x = 100f,
                 y = 100f,
-                voltageV = sourceVoltageV
+                voltageV = 400.0
             )
 
-        val bus =
+        val mdb =
             SldElement(
-                id = "MDB",
+                id = "MDB-01",
                 name = "MDB",
                 type = SldElementType.MDB,
-                x = 300f,
+                x = 350f,
                 y = 100f,
-                voltageV = sourceVoltageV
+                voltageV = 400.0
             )
-
-        val elements =
-            mutableListOf(
-                source,
-                bus
-            )
-
-        val connections =
-            mutableListOf<
-                com.electrical.calculationspro
-                    .core.model.SldConnection
-                >()
-
-        connections +=
-            com.electrical.calculationspro
-                .core.model.SldConnection(
-                    id = "SOURCE-MDB",
-                    fromId = source.id,
-                    toId = bus.id
-                )
-
-        loads.forEachIndexed { index, load ->
-
-            val element =
-                SldElement(
-                    id = load.id,
-                    name = load.name,
-                    type =
-                        when {
-                            load.name.contains(
-                                "motor",
-                                ignoreCase = true
-                            ) ->
-                                SldElementType.MOTOR
-
-                            load.name.contains(
-                                "pump",
-                                ignoreCase = true
-                            ) ->
-                                SldElementType.PUMP
-
-                            else ->
-                                SldElementType.LOAD
-                        },
-                    x = 500f,
-                    y =
-                        100f +
-                            index * 120f,
-                    powerKw =
-                        load.powerKw *
-                            load.quantity,
-                    voltageV =
-                        load.voltageV,
-                    parentId =
-                        bus.id
-                )
-
-            elements += element
-
-            connections +=
-                com.electrical.calculationspro
-                    .core.model.SldConnection(
-                        id =
-                            "MDB-${element.id}",
-                        fromId =
-                            bus.id,
-                        toId =
-                            element.id,
-                        lengthM =
-                            load.lengthM
-                    )
-        }
 
         return SldNetwork(
-            elements = elements,
-            connections = connections
+            elements =
+                listOf(
+                    utility,
+                    mdb
+                ),
+
+            connections =
+                listOf(
+                    com.electrical.calculationspro.core.model.SldConnection(
+                        id = "SOURCE-MDB",
+                        fromId = "SOURCE",
+                        toId = "MDB-01"
+                    )
+                )
         )
+    }
+
+    private fun findSource(
+        network: SldNetwork
+    ): SldElement? {
+
+        return network.elements.firstOrNull {
+            it.type ==
+                SldElementType.UTILITY ||
+                it.type ==
+                SldElementType.TRANSFORMER ||
+                it.type ==
+                SldElementType.GENERATOR
+        }
     }
 }
