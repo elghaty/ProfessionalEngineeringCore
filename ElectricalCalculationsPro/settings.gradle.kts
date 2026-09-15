@@ -17,7 +17,9 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ElectricalCalculationsPro"
+rootProject.name =
+    "ElectricalCalculationsPro"
 
 include(":app")
-include(":professional-core")
+
+includeBuild("../ProfessionalEngineeringCore")
