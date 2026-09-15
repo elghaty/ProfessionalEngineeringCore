@@ -1,23 +1,33 @@
 package com.electricalengineeringpro.app.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DesignServices
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.electricalengineeringpro.app.ui.calculations.CableSizingScreen
+import com.electricalengineeringpro.app.ui.calculations.GeneratorScreen
+import com.electricalengineeringpro.app.ui.calculations.LoadCalculationScreen
+import com.electricalengineeringpro.app.ui.calculations.MotorScreen
+import com.electricalengineeringpro.app.ui.calculations.PanelScreen
+import com.electricalengineeringpro.app.ui.calculations.ProtectionScreen
+import com.electricalengineeringpro.app.ui.calculations.PumpScreen
+import com.electricalengineeringpro.app.ui.calculations.ShortCircuitScreen
+import com.electricalengineeringpro.app.ui.calculations.TransformerScreen
+import com.electricalengineeringpro.app.ui.calculations.VoltageDropScreen
 import com.electricalengineeringpro.app.ui.dashboard.DashboardScreen
 import com.electricalengineeringpro.app.ui.design.DesignHomeScreen
 import com.electricalengineeringpro.app.ui.ownership.OwnershipScreen
@@ -43,7 +53,6 @@ fun AppRoot() {
 
     Scaffold(
         bottomBar = {
-
             NavigationBar {
 
                 NavigationBarItem(
@@ -112,14 +121,6 @@ fun AppRoot() {
 
                     when (selectedModule) {
 
-                        "sld" -> {
-                            SldScreen(
-                                onBack = {
-                                    selectedModule = null
-                                }
-                            )
-                        }
-
                         null -> {
                             DesignHomeScreen(
                                 onModuleSelected = {
@@ -128,13 +129,110 @@ fun AppRoot() {
                             )
                         }
 
-                        else -> {
+                        "load" -> {
+                            LoadCalculationScreen {
+                                selectedModule = null
+                            }
+                        }
+
+                        "cable" -> {
+                            CableSizingScreen {
+                                selectedModule = null
+                            }
+                        }
+
+                        "voltage_drop" -> {
+                            VoltageDropScreen {
+                                selectedModule = null
+                            }
+                        }
+
+                        "short_circuit" -> {
+                            ShortCircuitScreen {
+                                selectedModule = null
+                            }
+                        }
+
+                        "transformer" -> {
+                            TransformerScreen {
+                                selectedModule = null
+                            }
+                        }
+
+                        "generator" -> {
+                            GeneratorScreen {
+                                selectedModule = null
+                            }
+                        }
+
+                        "motor" -> {
+                            MotorScreen {
+                                selectedModule = null
+                            }
+                        }
+
+                        "pump" -> {
+                            PumpScreen {
+                                selectedModule = null
+                            }
+                        }
+
+                        "panel" -> {
+                            PanelScreen {
+                                selectedModule = null
+                            }
+                        }
+
+                        "protection" -> {
+                            ProtectionScreen {
+                                selectedModule = null
+                            }
+                        }
+
+                        "sld" -> {
+                            SldScreen {
+                                selectedModule = null
+                            }
+                        }
+
+                        "load_schedule" -> {
                             ModulePlaceholderScreen(
-                                title = moduleTitle(selectedModule!!),
+                                title = "Load Schedule",
                                 onBack = {
                                     selectedModule = null
                                 }
                             )
+                        }
+
+                        "breaker" -> {
+                            ModulePlaceholderScreen(
+                                title = "Breaker Selection",
+                                onBack = {
+                                    selectedModule = null
+                                }
+                            )
+                        }
+
+                        "network" -> {
+                            ModulePlaceholderScreen(
+                                title = "Electrical Network",
+                                onBack = {
+                                    selectedModule = null
+                                }
+                            )
+                        }
+
+                        "report" -> {
+                            ModulePlaceholderScreen(
+                                title = "Engineering Report",
+                                onBack = {
+                                    selectedModule = null
+                                }
+                            )
+                        }
+
+                        else -> {
+                            selectedModule = null
                         }
                     }
                 }
@@ -151,67 +249,39 @@ fun AppRoot() {
     }
 }
 
-private fun moduleTitle(route: String): String {
-    return when (route) {
-        "load" -> "Load Calculation"
-        "load_schedule" -> "Load Schedule"
-        "cable" -> "Cable Sizing"
-        "breaker" -> "Breaker Selection"
-        "voltage_drop" -> "Voltage Drop"
-        "short_circuit" -> "Short Circuit"
-        "transformer" -> "Transformers"
-        "generator" -> "Generators"
-        "motor" -> "Motors"
-        "pump" -> "Pumps"
-        "panel" -> "MDB / DB / MCC"
-        "protection" -> "Protection"
-        "network" -> "Electrical Network"
-        "report" -> "Engineering Report"
-        else -> "Engineering Module"
-    }
-}
-
 @Composable
 private fun ModulePlaceholderScreen(
     title: String,
     onBack: () -> Unit
 ) {
-
-    androidx.compose.foundation.layout.Column(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp)
     ) {
-
-        androidx.compose.material3.TextButton(
+        androidx.compose.material3.Button(
             onClick = onBack
         ) {
             Text("← Back")
         }
 
-        androidx.compose.foundation.layout.Spacer(
+        Spacer(
             modifier = Modifier.height(24.dp)
         )
 
         Text(
             text = title,
-            style = androidx.compose.material3.MaterialTheme.typography.headlineMedium
+            style = androidx.compose.material3.MaterialTheme
+                .typography
+                .headlineMedium
         )
 
-        androidx.compose.foundation.layout.Spacer(
-            modifier = Modifier.height(8.dp)
-        )
-
-        Text(
-            text = "Engineering module"
-        )
-
-        androidx.compose.foundation.layout.Spacer(
-            modifier = Modifier.height(16.dp)
+        Spacer(
+            modifier = Modifier.height(12.dp)
         )
 
         Text(
-            text = "This module is connected to ProfessionalEngineeringCore."
+            text = "Professional Engineering Module"
         )
     }
 }
