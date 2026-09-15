@@ -1,79 +1,60 @@
 package com.electricalengineeringpro.app.core
 
-import com.electricalengineeringpro.app.core.model.*
+import com.electricalengineeringpro.app.core.calculation.GeneratorInput
+import com.electricalengineeringpro.app.core.calculation.GeneratorResult
+import com.electricalengineeringpro.app.core.calculation.MdbInput
+import com.electricalengineeringpro.app.core.calculation.MdbResult
+import com.electricalengineeringpro.app.core.calculation.ProtectionInput
+import com.electricalengineeringpro.app.core.calculation.ProtectionResult
+import com.electricalengineeringpro.app.core.model.ElectricalLoad
 import com.electricalengineeringpro.app.core.result.EngineeringResult
 
 class ProfessionalEngineeringFacade(
-    private val core: ProfessionalEngineeringCore = ProfessionalEngineeringCore()
+    private val core: ProfessionalEngineeringCore =
+        ProfessionalEngineeringCore.instance
 ) {
 
-    fun calculateLoad(
-        input: ElectricalLoad
-    ): EngineeringResult<Any> {
-        return try {
-            EngineeringResult.Success(core.loads.calculate(input))
-        } catch (e: Exception) {
-            EngineeringResult.Error(e.message ?: "Load calculation error.")
+    fun calculateGenerator(
+        input: GeneratorInput
+    ): EngineeringResult<GeneratorResult> =
+        runCalculation {
+            core.generators.calculate(input)
         }
+
+    fun calculateProtection(
+        input: ProtectionInput
+    ): EngineeringResult<ProtectionResult> =
+        runCalculation {
+            core.protection.calculate(input)
+        }
+
+    fun calculateMdb(
+        input: MdbInput
+    ): EngineeringResult<MdbResult> =
+        runCalculation {
+            core.mdb.calculate(input)
+        }
+
+    fun calculateLoadSchedule(
+        loads: List<ElectricalLoad>
+    ) = runCalculation {
+        core.loadSchedule.calculate(loads)
     }
 
-    fun calculateCable(
-        input: CableInput
-    ): EngineeringResult<CableResult> {
-        return try {
-            EngineeringResult.Success(core.cables.calculate(input))
-        } catch (e: Exception) {
-            EngineeringResult.Error(e.message ?: "Cable calculation error.")
-        }
-    }
+    private inline fun <T> runCalculation(
+        calculation: () -> T
+    ): EngineeringResult<T> {
 
-    fun calculateBreaker(
-        input: BreakerInput
-    ): EngineeringResult<BreakerResult> {
         return try {
-            EngineeringResult.Success(core.breakers.calculate(input))
+            EngineeringResult.Success(calculation())
+        } catch (e: IllegalArgumentException) {
+            EngineeringResult.Error(
+                message = e.message ?: "Invalid engineering input."
+            )
         } catch (e: Exception) {
-            EngineeringResult.Error(e.message ?: "Breaker calculation error.")
-        }
-    }
-
-    fun calculateTransformer(
-        input: TransformerInput
-    ): EngineeringResult<TransformerResult> {
-        return try {
-            EngineeringResult.Success(core.transformers.calculate(input))
-        } catch (e: Exception) {
-            EngineeringResult.Error(e.message ?: "Transformer calculation error.")
-        }
-    }
-
-    fun calculateMotor(
-        input: MotorInput
-    ): EngineeringResult<MotorResult> {
-        return try {
-            EngineeringResult.Success(core.motors.calculate(input))
-        } catch (e: Exception) {
-            EngineeringResult.Error(e.message ?: "Motor calculation error.")
-        }
-    }
-
-    fun calculatePump(
-        input: PumpInput
-    ): EngineeringResult<PumpResult> {
-        return try {
-            EngineeringResult.Success(core.pumps.calculate(input))
-        } catch (e: Exception) {
-            EngineeringResult.Error(e.message ?: "Pump calculation error.")
-        }
-    }
-
-    fun calculateShortCircuit(
-        input: ShortCircuitInput
-    ): EngineeringResult<ShortCircuitResult> {
-        return try {
-            EngineeringResult.Success(core.shortCircuit.calculate(input))
-        } catch (e: Exception) {
-            EngineeringResult.Error(e.message ?: "Short-circuit calculation error.")
+            EngineeringResult.Error(
+                message = e.message ?: "Engineering calculation failed."
+            )
         }
     }
 }
