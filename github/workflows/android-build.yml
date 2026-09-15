@@ -1,4 +1,4 @@
-name: Android Build
+name: Core Build
 
 on:
   push:
@@ -28,14 +28,5 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Run Unit Tests
-        run: ./gradlew test
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: electrical-engineering-pro-debug
-          path: app/build/outputs/apk/debug/*.apk
+      - name: Build
+        run: ./gradlew build
