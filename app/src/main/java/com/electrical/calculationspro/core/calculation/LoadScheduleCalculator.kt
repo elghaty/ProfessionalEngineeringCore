@@ -1,45 +1,71 @@
 package com.electrical.calculationspro.core.calculation
 
-import com.electrical.calculationspro.core.model.ElectricalLoad
-
-data class LoadScheduleResult(
-    val connectedLoadKw: Double,
-    val demandLoadKw: Double,
-    val designLoadKw: Double,
-    val apparentPowerKva: Double,
-    val totalCurrentA: Double,
-    val individualResults: List<LoadResult>
+data class DiversityLoad(
+    val connectedKw: Double,
+    val demandFactor: Double = 1.0
 )
 
-class LoadScheduleCalculator(
-    private val loadCalculator: LoadCalculator =
-        LoadCalculator()
-) {
+data class DiversityResult(
+    val totalConnectedKw: Double,
+    val totalDemandKw: Double,
+    val effectiveDiversityFactor: Double,
+    val utilizationPercent: Double,
+    val notes: List<String>
+)
+
+class DiversityCalculator {
 
     fun calculate(
-        loads: List<ElectricalLoad>
-    ): LoadScheduleResult {
+        loads: List<DiversityLoad>,
+        additionalDiversityFactor: Double = 1.0
+    ): DiversityResult {
 
-        val results =
-            loadCalculator.calculateAll(loads)
+        require(additionalDiversityFactor in 0.0..1.0)
 
-        return LoadScheduleResult(
-            connectedLoadKw =
-                results.sumOf { it.connectedKw },
+        loads.forEach {
+            require(it.connectedKw >= 0.0)
+            require(it.demandFactor in 0.0..1.0)
+        }
 
-            demandLoadKw =
-                results.sumOf { it.demandKw },
+        val connected =
+            loads.sumOf { it.connectedKw }
 
-            designLoadKw =
-                results.sumOf { it.designKw },
+        val demandBeforeDiversity =
+            loads.sumOf {
+                it.connectedKw * it.demandFactor
+            }
 
-            apparentPowerKva =
-                results.sumOf { it.apparentPowerKva },
+        val finalDemand =
+            demandBeforeDiversity *
+                additionalDiversityFactor
 
-            totalCurrentA =
-                results.sumOf { it.currentA },
+        val effective =
+            if (connected > 0.0) {
+                finalDemand / connected
+            } else {
+                0.0
+            }
 
-            individualResults = results
+        return DiversityResult(
+            totalConnectedKw = connected,
+            totalDemandKw = finalDemand,
+            effectiveDiversityFactor =
+                effective.coerceIn(0.0, 1.0),
+            utilizationPercent =
+                if (connected > 0.0) {
+                    finalDemand / connected * 100.0
+                } else {
+                    0.0
+                },
+            notes = listOf(
+                "Connected load = %.2f kW".format(connected),
+                "Demand before diversity = %.2f kW"
+                    .format(demandBeforeDiversity),
+                "Applied diversity factor = %.3f"
+                    .format(additionalDiversityFactor),
+                "Final demand load = %.2f kW"
+                    .format(finalDemand)
+            )
         )
     }
 }
