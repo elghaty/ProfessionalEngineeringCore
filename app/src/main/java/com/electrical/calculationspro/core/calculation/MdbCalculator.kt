@@ -4,13 +4,15 @@ import com.electrical.calculationspro.core.model.ElectricalLoad
 import kotlin.math.sqrt
 
 data class MdbInput(
-    val loads: List<ElectricalLoad>,
+    val name: String,
     val voltageV: Double = 400.0,
     val powerFactor: Double = 0.90,
-    val designMargin: Double = 1.15
+    val designMargin: Double = 1.15,
+    val loads: List<ElectricalLoad> = emptyList()
 )
 
 data class MdbResult(
+    val name: String,
     val connectedLoadKw: Double,
     val demandLoadKw: Double,
     val designLoadKw: Double,
@@ -18,7 +20,8 @@ data class MdbResult(
     val incomerCurrentA: Double,
     val recommendedIncomerA: Double,
     val recommendedTransformerKva: Double,
-    val outgoingCount: Int
+    val outgoingCount: Int,
+    val notes: List<String>
 )
 
 class MdbCalculator(
@@ -27,41 +30,11 @@ class MdbCalculator(
         DesignSummaryCalculator()
 ) {
 
-    private val breakerRatings =
-        listOf(
-            16.0,
-            20.0,
-            25.0,
-            32.0,
-            40.0,
-            50.0,
-            63.0,
-            80.0,
-            100.0,
-            125.0,
-            160.0,
-            200.0,
-            250.0,
-            315.0,
-            400.0,
-            500.0,
-            630.0,
-            800.0,
-            1000.0,
-            1250.0,
-            1600.0,
-            2000.0,
-            2500.0,
-            3200.0,
-            4000.0,
-            5000.0,
-            6300.0
-        )
-
     fun calculate(
         input: MdbInput
     ): MdbResult {
 
+        require(input.name.isNotBlank())
         require(input.voltageV > 0.0)
         require(input.powerFactor in 0.01..1.0)
         require(input.designMargin >= 1.0)
@@ -74,12 +47,20 @@ class MdbCalculator(
                 designMargin = input.designMargin
             )
 
-        val incomer =
-            breakerRatings.firstOrNull {
-                it >= result.designCurrentA
-            } ?: result.designCurrentA
+        val current =
+            if (result.apparentPowerKva > 0.0) {
+                result.apparentPowerKva *
+                    1000.0 /
+                    (
+                        sqrt(3.0) *
+                            input.voltageV
+                        )
+            } else {
+                0.0
+            }
 
         return MdbResult(
+            name = input.name,
             connectedLoadKw =
                 result.connectedLoadKw,
             demandLoadKw =
@@ -87,15 +68,32 @@ class MdbCalculator(
             designLoadKw =
                 result.designLoadKw,
             designKva =
-                result.designKva,
+                result.apparentPowerKva,
             incomerCurrentA =
-                result.designCurrentA,
+                current,
             recommendedIncomerA =
-                incomer,
+                result.recommendedMainBreakerA,
             recommendedTransformerKva =
                 result.recommendedTransformerKva,
             outgoingCount =
-                input.loads.size
+                input.loads.size,
+            notes = listOf(
+                "MDB = ${input.name}",
+                "Connected load = %.2f kW"
+                    .format(result.connectedLoadKw),
+                "Demand load = %.2f kW"
+                    .format(result.demandLoadKw),
+                "Design load = %.2f kW"
+                    .format(result.designLoadKw),
+                "Design power = %.2f kVA"
+                    .format(result.apparentPowerKva),
+                "Incomer current = %.2f A"
+                    .format(current),
+                "Recommended incomer = %.0f A"
+                    .format(result.recommendedMainBreakerA),
+                "Recommended transformer = %.0f kVA"
+                    .format(result.recommendedTransformerKva)
+            )
         )
     }
 }
