@@ -5,39 +5,31 @@ import com.electrical.calculationspro.core.calculation.BreakerSelectionCalculato
 import com.electrical.calculationspro.core.calculation.CableCalculator
 import com.electrical.calculationspro.core.calculation.DesignNetworkCalculator
 import com.electrical.calculationspro.core.calculation.DesignSummaryCalculator
+import com.electrical.calculationspro.core.calculation.DiversityCalculator
 import com.electrical.calculationspro.core.calculation.ElectricalNetworkCalculator
 import com.electrical.calculationspro.core.calculation.GeneratorCalculator
 import com.electrical.calculationspro.core.calculation.LoadCalculator
 import com.electrical.calculationspro.core.calculation.LoadScheduleCalculator
 import com.electrical.calculationspro.core.calculation.MdbCalculator
 import com.electrical.calculationspro.core.calculation.MotorCalculator
+import com.electrical.calculationspro.core.calculation.PanelCalculator
+import com.electrical.calculationspro.core.calculation.PowerCalculator
 import com.electrical.calculationspro.core.calculation.ProtectionCalculator
 import com.electrical.calculationspro.core.calculation.PumpCalculator
 import com.electrical.calculationspro.core.calculation.ShortCircuitCalculator
+import com.electrical.calculationspro.core.calculation.SldGenerator
+import com.electrical.calculationspro.core.calculation.SldShortCircuitCalculator
 import com.electrical.calculationspro.core.calculation.TransformerCalculator
 import com.electrical.calculationspro.core.calculation.TransformerSizingCalculator
 import com.electrical.calculationspro.core.calculation.VoltageDropCalculator
-import com.electrical.calculationspro.core.calculation.PowerCalculator
-import com.electrical.calculationspro.core.sld.SldGenerator
 
-/**
- * SINGLE PROFESSIONAL ENGINEERING FACADE.
- *
- * This is the only public entry point for engineering calculations.
- *
- * UI
- *  ↓
- * ProfessionalEngineeringCore
- *  ↓
- * Individual engineering calculators
- */
 class ProfessionalEngineeringCore private constructor() {
 
-    val power =
-        PowerCalculator()
+    val power = PowerCalculator()
 
-    val loads =
-        LoadCalculator()
+    val loads = LoadCalculator()
+
+    val diversity = DiversityCalculator()
 
     val loadSchedule =
         LoadScheduleCalculator(
@@ -84,6 +76,9 @@ class ProfessionalEngineeringCore private constructor() {
     val protection =
         ProtectionCalculator()
 
+    val panels =
+        PanelCalculator()
+
     val designSummary =
         DesignSummaryCalculator(
             schedule = loadSchedule
@@ -113,12 +108,16 @@ class ProfessionalEngineeringCore private constructor() {
             shortCircuit = shortCircuit
         )
 
+    val sldShortCircuit =
+        SldShortCircuitCalculator(
+            shortCircuit = shortCircuit
+        )
+
     companion object {
 
         @JvmStatic
-        val instance:
-            ProfessionalEngineeringCore by lazy {
-                ProfessionalEngineeringCore()
-            }
+        val instance: ProfessionalEngineeringCore by lazy {
+            ProfessionalEngineeringCore()
+        }
     }
 }
