@@ -21,55 +21,172 @@ import com.electricalengineeringpro.app.core.report.EngineeringReportGenerator
 import com.electricalengineeringpro.app.core.sld.SldGenerator
 
 /**
- * SINGLE LOGICAL ENGINEERING CORE.
+ * ============================================================
+ * PROFESSIONAL ENGINEERING CORE
+ * ============================================================
  *
- * All engineering calculations are exposed from this boundary.
- * Calculators are modular and independently testable.
+ * SINGLE ENGINEERING FACADE.
  *
- * UI, database and repositories must not contain engineering formulas.
+ * This is the ONLY public entry point to the engineering
+ * calculation system.
+ *
+ * The individual calculators remain independent modules.
+ *
+ * Architecture:
+ *
+ * UI
+ *   ↓
+ * ProfessionalEngineeringCore
+ *   ↓
+ * Individual Calculators
+ *   ↓
+ * Engineering Results
+ *
+ * IMPORTANT:
+ *
+ * 1. No engineering formulas are implemented here.
+ * 2. No calculation logic is duplicated here.
+ * 3. Each calculator remains responsible for its discipline.
+ * 4. UI must not instantiate calculators directly.
+ * 5. Database/repository classes must not contain formulas.
+ *
+ * Power is handled internally and at application level in kW
+ * as the active-power engineering unit.
  */
 class ProfessionalEngineeringCore private constructor() {
 
-    val power = PowerCalculator()
+    // =========================================================
+    // POWER
+    // =========================================================
 
-    val loads = LoadCalculator()
+    val power: PowerCalculator =
+        PowerCalculator()
 
-    val designSummary = DesignSummaryCalculator()
+    // =========================================================
+    // LOADS
+    // =========================================================
 
-    val loadSchedule = LoadScheduleCalculator(loads)
+    val loads: LoadCalculator =
+        LoadCalculator()
 
-    val cables = CableCalculator()
+    val designSummary: DesignSummaryCalculator =
+        DesignSummaryCalculator()
 
-    val breakers = BreakerCalculator()
+    val loadSchedule: LoadScheduleCalculator =
+        LoadScheduleCalculator(loads)
 
-    val breakerSelection = BreakerSelectionCalculator()
+    // =========================================================
+    // CABLES
+    // =========================================================
 
-    val voltageDrop = VoltageDropCalculator()
+    val cables: CableCalculator =
+        CableCalculator()
 
-    val shortCircuit = ShortCircuitCalculator()
+    // =========================================================
+    // BREAKERS
+    // =========================================================
 
-    val transformers = TransformerCalculator()
+    val breakers: BreakerCalculator =
+        BreakerCalculator()
 
-    val transformerSizing = TransformerSizingCalculator()
+    val breakerSelection: BreakerSelectionCalculator =
+        BreakerSelectionCalculator()
 
-    val generators = GeneratorCalculator()
+    // =========================================================
+    // VOLTAGE DROP
+    // =========================================================
 
-    val motors = MotorCalculator()
+    val voltageDrop: VoltageDropCalculator =
+        VoltageDropCalculator()
 
-    val pumps = PumpCalculator()
+    // =========================================================
+    // SHORT CIRCUIT
+    // =========================================================
 
-    val protection = ProtectionCalculator()
+    val shortCircuit: ShortCircuitCalculator =
+        ShortCircuitCalculator()
 
-    val mdb = MdbCalculator()
+    // =========================================================
+    // TRANSFORMERS
+    // =========================================================
 
-    val network = ElectricalNetworkCalculator(loads)
+    val transformers: TransformerCalculator =
+        TransformerCalculator()
 
-    val sld = SldGenerator()
+    val transformerSizing: TransformerSizingCalculator =
+        TransformerSizingCalculator()
 
-    val reports = EngineeringReportGenerator(this)
+    // =========================================================
+    // GENERATORS
+    // =========================================================
+
+    val generators: GeneratorCalculator =
+        GeneratorCalculator()
+
+    // =========================================================
+    // MOTORS
+    // =========================================================
+
+    val motors: MotorCalculator =
+        MotorCalculator()
+
+    // =========================================================
+    // PUMPS
+    // =========================================================
+
+    val pumps: PumpCalculator =
+        PumpCalculator()
+
+    // =========================================================
+    // PROTECTION
+    // =========================================================
+
+    val protection: ProtectionCalculator =
+        ProtectionCalculator()
+
+    // =========================================================
+    // MDB / PANEL DESIGN
+    // =========================================================
+
+    val mdb: MdbCalculator =
+        MdbCalculator()
+
+    // =========================================================
+    // ELECTRICAL NETWORK
+    // =========================================================
+
+    val network: ElectricalNetworkCalculator =
+        ElectricalNetworkCalculator(loads)
+
+    // =========================================================
+    // SLD
+    // =========================================================
+
+    val sld: SldGenerator =
+        SldGenerator()
+
+    // =========================================================
+    // ENGINEERING REPORTS
+    // =========================================================
+
+    val reports: EngineeringReportGenerator =
+        EngineeringReportGenerator(this)
+
+    // =========================================================
+    // SINGLE INSTANCE
+    // =========================================================
 
     companion object {
 
+        /**
+         * Single shared engineering core instance.
+         *
+         * The application must use:
+         *
+         * ProfessionalEngineeringCore.instance
+         *
+         * instead of creating calculators directly.
+         */
         val instance: ProfessionalEngineeringCore by lazy {
             ProfessionalEngineeringCore()
         }
