@@ -1,36 +1,50 @@
 # Professional Engineering Core
 
-This is the single engineering calculation boundary.
+ElectricalEngineeringPro uses ONE logical engineering calculation boundary:
 
-The core is NOT one giant file.
+ProfessionalEngineeringCore
 
-It is a modular engineering system composed of independent calculators.
+The core is modular internally and contains specialized calculators.
 
-## Rules
+Architecture:
 
-- UI contains no engineering formulas.
-- ViewModels contain no engineering formulas.
-- Repositories contain no engineering formulas.
-- Database contains no engineering formulas.
-- Each engineering calculation has its own calculator.
-- ProfessionalEngineeringCore is the single public engineering entry point.
-- Every calculator must be independently testable.
-- Engineering units are explicit.
-- Power is internally represented in kW.
-- Apparent power is represented in kVA.
-- Current is represented in A.
-- Voltage is represented in V.
-- Short-circuit current is represented in kA.
+UI
+ ↓
+ViewModel / Service
+ ↓
+ProfessionalEngineeringFacade
+ ↓
+ProfessionalEngineeringCore
+ ↓
+Modular Engineering Calculators
 
-## Future Modules
+Modules:
 
-- GeneratorCalculator
-- ProtectionCalculator
-- CoordinationCalculator
-- EarthingCalculator
-- ArcFlashCalculator
-- HarmonicsCalculator
-- SolarCalculator
-- BatteryCalculator
+- Power
+- Load
+- Load Schedule
+- Network
+- Cable
+- Breaker
+- Breaker Selection
+- Voltage Drop
+- Short Circuit
+- Transformer
+- Transformer Sizing
+- Generator
+- Motor
+- Pump
+- SLD
 
-These modules must be added without creating a second engineering core.
+Rules:
+
+1. Engineering formulas must not exist in Compose UI.
+2. Engineering formulas must not be duplicated in ViewModels.
+3. There must not be a second engineering core.
+4. ProfessionalEngineeringCore is the single engineering boundary.
+5. Internal active-power unit is kW.
+6. Apparent power is kVA.
+7. Current is A.
+8. Short-circuit current is kA.
+9. Engineering catalogs and standard-dependent values must eventually be versioned.
+10. All critical calculators require automated tests.
