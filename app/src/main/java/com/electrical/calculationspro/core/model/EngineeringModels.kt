@@ -42,6 +42,12 @@ enum class SourceType {
     PANEL
 }
 
+enum class FaultType {
+    THREE_PHASE,
+    LINE_TO_LINE,
+    LINE_TO_NEUTRAL
+}
+
 enum class SldElementType {
     UTILITY,
     TRANSFORMER,
@@ -72,7 +78,8 @@ data class ElectricalLoad(
     val lengthM: Double = 0.0,
     val material: ConductorMaterial = ConductorMaterial.COPPER,
     val insulation: Insulation = Insulation.XLPE,
-    val installationMethod: InstallationMethod = InstallationMethod.CABLE_TRAY
+    val installationMethod: InstallationMethod =
+        InstallationMethod.CABLE_TRAY
 )
 
 data class PowerResult(
@@ -98,13 +105,20 @@ data class VoltageDropResult(
 )
 
 data class ShortCircuitResult(
-    val initialSymmetricalCurrentKA: Double,
-    val peakCurrentKA: Double,
-    val thermalCurrentKA: Double,
+    val sourceImpedanceOhm: Double,
+    val transformerImpedanceOhm: Double,
+    val cableResistanceOhm: Double,
+    val cableReactanceOhm: Double,
+    val totalResistanceOhm: Double,
+    val totalReactanceOhm: Double,
+    val totalImpedanceOhm: Double,
+    val faultCurrentKA: Double,
     val faultMva: Double,
-    val impedanceOhm: Double,
+    val peakFaultCurrentKA: Double,
+    val thermalI2tKa2s: Double,
     val kappa: Double,
-    val i2t: Double
+    val xOverR: Double,
+    val rOverX: Double
 )
 
 data class CableResult(
@@ -168,6 +182,7 @@ data class MotorInput(
 )
 
 data class MotorResult(
+    val inputPowerKw: Double,
     val fullLoadCurrentA: Double,
     val startingCurrentA: Double,
     val apparentPowerKva: Double
@@ -195,15 +210,39 @@ data class SldElement(
     val y: Float = 0f,
     val powerKw: Double = 0.0,
     val voltageV: Double = 400.0,
+    val powerFactor: Double = 0.90,
+    val phase: Phase = Phase.THREE,
+    val quantity: Int = 1,
+    val demandFactor: Double = 1.0,
+    val diversityFactor: Double = 1.0,
+    val efficiency: Double = 1.0,
     val sourceType: SourceType? = null,
-    val parentId: String? = null
+    val parentId: String? = null,
+
+    val transformerKva: Double = 0.0,
+    val transformerPercentZ: Double = 0.0,
+
+    val generatorKva: Double = 0.0,
+    val generatorXdPercent: Double = 15.0,
+    val generatorXOverR: Double = 10.0,
+
+    val sourceShortCircuitMva: Double = 0.0,
+    val sourceXOverR: Double = 10.0,
+
+    val cableLengthM: Double = 0.0,
+    val cableResistanceOhmPerKm: Double = 0.0,
+    val cableReactanceOhmPerKm: Double = 0.0,
+    val parallelRuns: Int = 1
 )
 
 data class SldConnection(
     val id: String,
     val fromId: String,
     val toId: String,
-    val lengthM: Double = 0.0
+    val lengthM: Double = 0.0,
+    val cableResistanceOhmPerKm: Double = 0.0,
+    val cableReactanceOhmPerKm: Double = 0.0,
+    val parallelRuns: Int = 1
 )
 
 data class SldNetwork(
@@ -225,4 +264,14 @@ data class SldResult(
     val totalDemandKw: Double,
     val sourceCurrentA: Double,
     val sourceFaultCurrentKA: Double
+)
+
+data class ProjectSummaryResult(
+    val connectedLoadKw: Double,
+    val demandLoadKw: Double,
+    val designLoadKw: Double,
+    val apparentPowerKva: Double,
+    val mainCurrentA: Double,
+    val recommendedTransformerKva: Double,
+    val recommendedMainBreakerA: Double
 )
