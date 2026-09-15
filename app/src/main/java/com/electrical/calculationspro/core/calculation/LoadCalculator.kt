@@ -2,12 +2,18 @@ package com.electrical.calculationspro.core.calculation
 
 import com.electrical.calculationspro.core.model.ElectricalLoad
 import com.electrical.calculationspro.core.model.LoadResult
-import kotlin.math.sqrt
 
-class LoadCalculator {
+class LoadCalculator(
+    private val powerCalculator: PowerCalculator =
+        PowerCalculator()
+) {
 
-    fun calculate(load: ElectricalLoad): LoadResult {
+    fun calculate(
+        load: ElectricalLoad
+    ): LoadResult {
 
+        require(load.id.isNotBlank())
+        require(load.name.isNotBlank())
         require(load.powerKw >= 0.0)
         require(load.quantity > 0)
         require(load.voltageV > 0.0)
@@ -25,43 +31,28 @@ class LoadCalculator {
         val designKw =
             demandKw / load.diversityFactor
 
-        val electricalKw =
+        val electricalInputKw =
             designKw / load.efficiency
 
-        val currentA =
-            when (load.phase) {
-
-                com.electrical.calculationspro.core.model.Phase.DC ->
-                    electricalKw * 1000.0 /
-                        load.voltageV
-
-                com.electrical.calculationspro.core.model.Phase.SINGLE ->
-                    electricalKw * 1000.0 /
-                        (load.voltageV * load.powerFactor)
-
-                com.electrical.calculationspro.core.model.Phase.TWO ->
-                    electricalKw * 1000.0 /
-                        (2.0 * load.voltageV * load.powerFactor)
-
-                com.electrical.calculationspro.core.model.Phase.THREE ->
-                    electricalKw * 1000.0 /
-                        (sqrt(3.0) *
-                            load.voltageV *
-                            load.powerFactor)
-            }
+        val power =
+            powerCalculator.fromKw(
+                powerKw = electricalInputKw,
+                voltageV = load.voltageV,
+                powerFactor = load.powerFactor,
+                phase = load.phase
+            )
 
         return LoadResult(
             connectedKw = connectedKw,
             demandKw = demandKw,
             designKw = designKw,
-            currentA = currentA,
-            apparentPowerKva =
-                electricalKw / load.powerFactor
+            currentA = power.currentA,
+            apparentPowerKva = power.apparentPowerKva
         )
     }
 
     fun calculateAll(
         loads: List<ElectricalLoad>
     ): List<LoadResult> =
-        loads.map { calculate(it) }
+        loads.map(::calculate)
 }
