@@ -1,6 +1,7 @@
 package com.electricalengineeringpro.app.core
 
 import com.electricalengineeringpro.app.core.calculation.BreakerCalculator
+import com.electricalengineeringpro.app.core.calculation.BreakerSelectionCalculator
 import com.electricalengineeringpro.app.core.calculation.CableCalculator
 import com.electricalengineeringpro.app.core.calculation.DesignSummaryCalculator
 import com.electricalengineeringpro.app.core.calculation.ElectricalNetworkCalculator
@@ -19,61 +20,53 @@ import com.electricalengineeringpro.app.core.calculation.VoltageDropCalculator
 import com.electricalengineeringpro.app.core.report.EngineeringReportGenerator
 import com.electricalengineeringpro.app.core.sld.SldGenerator
 
+/**
+ * SINGLE LOGICAL ENGINEERING CORE.
+ *
+ * All engineering calculations are exposed from this boundary.
+ * Calculators are modular and independently testable.
+ *
+ * UI, database and repositories must not contain engineering formulas.
+ */
 class ProfessionalEngineeringCore private constructor() {
 
-    val power =
-        PowerCalculator()
+    val power = PowerCalculator()
 
-    val loads =
-        LoadCalculator()
+    val loads = LoadCalculator()
 
-    val designSummary =
-        DesignSummaryCalculator()
+    val designSummary = DesignSummaryCalculator()
 
-    val loadSchedule =
-        LoadScheduleCalculator(loads)
+    val loadSchedule = LoadScheduleCalculator(loads)
 
-    val cables =
-        CableCalculator()
+    val cables = CableCalculator()
 
-    val breakers =
-        BreakerCalculator()
+    val breakers = BreakerCalculator()
 
-    val voltageDrop =
-        VoltageDropCalculator()
+    val breakerSelection = BreakerSelectionCalculator()
 
-    val shortCircuit =
-        ShortCircuitCalculator()
+    val voltageDrop = VoltageDropCalculator()
 
-    val transformers =
-        TransformerCalculator()
+    val shortCircuit = ShortCircuitCalculator()
 
-    val transformerSizing =
-        TransformerSizingCalculator()
+    val transformers = TransformerCalculator()
 
-    val generators =
-        GeneratorCalculator()
+    val transformerSizing = TransformerSizingCalculator()
 
-    val motors =
-        MotorCalculator()
+    val generators = GeneratorCalculator()
 
-    val pumps =
-        PumpCalculator()
+    val motors = MotorCalculator()
 
-    val protection =
-        ProtectionCalculator()
+    val pumps = PumpCalculator()
 
-    val mdb =
-        MdbCalculator()
+    val protection = ProtectionCalculator()
 
-    val network =
-        ElectricalNetworkCalculator(loads)
+    val mdb = MdbCalculator()
 
-    val sld =
-        SldGenerator()
+    val network = ElectricalNetworkCalculator(loads)
 
-    val reports =
-        EngineeringReportGenerator(this)
+    val sld = SldGenerator()
+
+    val reports = EngineeringReportGenerator(this)
 
     companion object {
 
