@@ -1,89 +1,164 @@
 package com.electricalengineeringpro.app.ui.sld
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.electricalengineeringpro.app.core.sld.*
+import com.electricalengineeringpro.app.core.ProfessionalEngineeringCore
+import com.electricalengineeringpro.app.core.model.NetworkElement
+import com.electricalengineeringpro.app.core.model.NetworkElementType
+import com.electricalengineeringpro.app.core.sld.SldNode
+import kotlin.math.max
 
 @Composable
 fun SldScreen(
-    diagram: SingleLineDiagram,
-    modifier: Modifier = Modifier
+    onBack: () -> Unit
 ) {
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
 
-    Canvas(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .pointerInput(Unit) {
-                detectTransformGestures { centroid, pan, zoom, _ ->
-                    scale = (scale * zoom).coerceIn(0.5f, 4f)
-                    offset += pan
-                }
-            }
+    val core = ProfessionalEngineeringCore.instance
+
+    var scale by remember {
+        mutableFloatStateOf(1f)
+    }
+
+    var offset by remember {
+        mutableStateOf(Offset.Zero)
+    }
+
+    val diagram = remember {
+
+        core.sld.generate(
+            source = NetworkElement(
+                id = "SOURCE",
+                name = "Utility",
+                type = NetworkElementType.SOURCE
+            ),
+            panels = listOf(
+                NetworkElement(
+                    id = "MDB",
+                    name = "MDB",
+                    type = NetworkElementType.PANEL
+                ),
+                NetworkElement(
+                    id = "DB-01",
+                    name = "DB-01",
+                    type = NetworkElementType.PANEL
+                ),
+                NetworkElement(
+                    id = "MCC-01",
+                    name = "MCC-01",
+                    type = NetworkElementType.PANEL
+                )
+            ),
+            feeders = emptyList()
+        )
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
 
-        fun position(node: SldNode): Offset {
-            return Offset(
-                x = node.x * scale + offset.x,
-                y = node.y * scale + offset.y
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Text(
+                text = "←",
+                style = MaterialTheme.typography.headlineSmall
             )
         }
 
-        diagram.connections.forEach { connection ->
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
 
-            val from = diagram.nodes.firstOrNull {
-                it.id == connection.fromId
-            } ?: return@forEach
+                    detectTransformGestures { _, pan, zoom, _ ->
 
-            val to = diagram.nodes.firstOrNull {
-                it.id == connection.toId
-            } ?: return@forEach
+                        scale =
+                            max(
+                                0.5f,
+                                (scale * zoom).coerceAtMost(3f)
+                            )
 
-            drawLine(
-                start = position(from),
-                end = position(to),
-                strokeWidth = 4.dp.toPx()
-            )
-        }
-
-        diagram.nodes.forEach { node ->
-
-            val p = position(node)
-
-            drawRect(
-                topLeft = Offset(
-                    p.x - 60f * scale,
-                    p.y - 30f * scale
-                ),
-                size = androidx.compose.ui.geometry.Size(
-                    120f * scale,
-                    60f * scale
-                ),
-                style = Stroke(
-                    width = 3.dp.toPx()
-                )
-            )
-
-            drawContext.canvas.nativeCanvas.drawText(
-                node.label,
-                p.x - 50f * scale,
-                p.y + 5f * scale,
-                android.graphics.Paint().apply {
-                    textSize = 13f * scale
-                    isAntiAlias = true
+                        offset += pan
+                    }
                 }
-            )
+        ) {
+
+            val centerX = size.width / 2f
+
+            val startY = 180f
+
+            val spacing = 180f
+
+            diagram.nodes.forEachIndexed { index, node ->
+
+                val x = centerX + offset.x
+                val y =
+                    startY +
+                        index * spacing +
+                        offset.y
+
+                if (index > 0) {
+
+                    drawLine(
+                        start = Offset(
+                            centerX + offset.x,
+                            y - spacing * scale
+                        ),
+                        end = Offset(
+                            centerX + offset.x,
+                            y
+                        ),
+                        strokeWidth = 5f * scale,
+                        cap = StrokeCap.Round
+                    )
+                }
+
+                drawRect(
+                    topLeft = Offset(
+                        x - 70f * scale,
+                        y - 30f * scale
+                    ),
+                    size = androidx.compose.ui.geometry.Size(
+                        140f * scale,
+                        60f * scale
+                    ),
+                    style = Stroke(
+                        width = 4f * scale
+                    )
+                )
+
+                drawContext.canvas.nativeCanvas.drawText(
+                    node.name,
+                    x - 50f * scale,
+                    y + 7f * scale,
+                    android.graphics.Paint().apply {
+                        textSize = 18f * scale
+                        textAlign =
+                            android.graphics.Paint.Align.LEFT
+                    }
+                )
+            }
         }
     }
 }
