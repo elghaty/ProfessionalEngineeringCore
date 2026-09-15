@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.electricalengineeringpro.app.ui.calculations.CableSizingScreen
 import com.electricalengineeringpro.app.ui.calculations.GeneratorScreen
 import com.electricalengineeringpro.app.ui.calculations.LoadCalculationScreen
+import com.electricalengineeringpro.app.ui.calculations.LoadScheduleScreen
 import com.electricalengineeringpro.app.ui.calculations.MotorScreen
 import com.electricalengineeringpro.app.ui.calculations.PanelScreen
 import com.electricalengineeringpro.app.ui.calculations.ProtectionScreen
@@ -30,6 +31,7 @@ import com.electricalengineeringpro.app.ui.calculations.TransformerScreen
 import com.electricalengineeringpro.app.ui.calculations.VoltageDropScreen
 import com.electricalengineeringpro.app.ui.dashboard.DashboardScreen
 import com.electricalengineeringpro.app.ui.design.DesignHomeScreen
+import com.electricalengineeringpro.app.ui.network.NetworkScreen
 import com.electricalengineeringpro.app.ui.ownership.OwnershipScreen
 import com.electricalengineeringpro.app.ui.projects.ProjectsScreen
 import com.electricalengineeringpro.app.ui.sld.SldScreen
@@ -53,6 +55,7 @@ fun AppRoot() {
 
     Scaffold(
         bottomBar = {
+
             NavigationBar {
 
                 NavigationBarItem(
@@ -121,129 +124,104 @@ fun AppRoot() {
 
                     when (selectedModule) {
 
-                        null -> {
+                        null ->
                             DesignHomeScreen(
                                 onModuleSelected = {
                                     selectedModule = it
                                 }
                             )
-                        }
 
-                        "load" -> {
+                        "load" ->
                             LoadCalculationScreen {
                                 selectedModule = null
                             }
-                        }
 
-                        "cable" -> {
+                        "load_schedule" ->
+                            LoadScheduleScreen {
+                                selectedModule = null
+                            }
+
+                        "cable" ->
                             CableSizingScreen {
                                 selectedModule = null
                             }
-                        }
 
-                        "voltage_drop" -> {
+                        "voltage_drop" ->
                             VoltageDropScreen {
                                 selectedModule = null
                             }
-                        }
 
-                        "short_circuit" -> {
+                        "short_circuit" ->
                             ShortCircuitScreen {
                                 selectedModule = null
                             }
-                        }
 
-                        "transformer" -> {
+                        "transformer" ->
                             TransformerScreen {
                                 selectedModule = null
                             }
-                        }
 
-                        "generator" -> {
+                        "generator" ->
                             GeneratorScreen {
                                 selectedModule = null
                             }
-                        }
 
-                        "motor" -> {
+                        "motor" ->
                             MotorScreen {
                                 selectedModule = null
                             }
-                        }
 
-                        "pump" -> {
+                        "pump" ->
                             PumpScreen {
                                 selectedModule = null
                             }
-                        }
 
-                        "panel" -> {
+                        "panel" ->
                             PanelScreen {
                                 selectedModule = null
                             }
-                        }
 
-                        "protection" -> {
+                        "protection" ->
                             ProtectionScreen {
                                 selectedModule = null
                             }
-                        }
 
-                        "sld" -> {
+                        "network" ->
+                            NetworkScreen {
+                                selectedModule = null
+                            }
+
+                        "sld" ->
                             SldScreen {
                                 selectedModule = null
                             }
-                        }
 
-                        "load_schedule" -> {
-                            ModulePlaceholderScreen(
-                                title = "Load Schedule",
-                                onBack = {
-                                    selectedModule = null
-                                }
-                            )
-                        }
-
-                        "breaker" -> {
+                        "breaker" ->
                             ModulePlaceholderScreen(
                                 title = "Breaker Selection",
                                 onBack = {
                                     selectedModule = null
                                 }
                             )
-                        }
 
-                        "network" -> {
-                            ModulePlaceholderScreen(
-                                title = "Electrical Network",
-                                onBack = {
-                                    selectedModule = null
-                                }
-                            )
-                        }
-
-                        "report" -> {
+                        "report" ->
                             ModulePlaceholderScreen(
                                 title = "Engineering Report",
                                 onBack = {
                                     selectedModule = null
                                 }
                             )
-                        }
 
-                        else -> {
+                        else ->
                             selectedModule = null
-                        }
                     }
                 }
 
-                MainSection.PROJECTS -> {
+                MainSection.PROJECTS ->
                     ProjectsScreen()
-                }
 
-                MainSection.ABOUT -> {
+                MainSection.ABOUT ->
                     OwnershipScreen()
-                }
             }
         }
     }
@@ -254,11 +232,13 @@ private fun ModulePlaceholderScreen(
     title: String,
     onBack: () -> Unit
 ) {
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp)
     ) {
+
         androidx.compose.material3.Button(
             onClick = onBack
         ) {
@@ -271,9 +251,10 @@ private fun ModulePlaceholderScreen(
 
         Text(
             text = title,
-            style = androidx.compose.material3.MaterialTheme
-                .typography
-                .headlineMedium
+            style =
+                androidx.compose.material3.MaterialTheme
+                    .typography
+                    .headlineMedium
         )
 
         Spacer(
