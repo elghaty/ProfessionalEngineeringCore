@@ -4,31 +4,30 @@ enum class SldSymbolType {
     UTILITY,
     TRANSFORMER,
     GENERATOR,
-    ACB,
-    MCCB,
-    MCB,
-    MDB,
-    DB,
+    MAIN_SWITCHBOARD,
+    PANEL,
     MCC,
+    BREAKER,
+    CABLE,
     MOTOR,
     PUMP,
-    FEEDER,
-    LOAD
+    LOAD,
+    EARTH
 }
 
 data class SldNode(
     val id: String,
-    val label: String,
+    val name: String,
     val type: SldSymbolType,
     val x: Float = 0f,
     val y: Float = 0f,
-    val parentId: String? = null,
     val electricalData: Map<String, String> = emptyMap()
 )
 
 data class SldConnection(
     val fromId: String,
-    val toId: String
+    val toId: String,
+    val label: String = ""
 )
 
 data class SingleLineDiagram(
