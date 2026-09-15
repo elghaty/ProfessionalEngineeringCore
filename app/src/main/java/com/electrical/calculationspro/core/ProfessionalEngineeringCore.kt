@@ -1,25 +1,35 @@
 package com.electrical.calculationspro.core
 
 import com.electrical.calculationspro.core.calculation.BreakerCalculator
+import com.electrical.calculationspro.core.calculation.BreakerSelectionCalculator
 import com.electrical.calculationspro.core.calculation.CableCalculator
+import com.electrical.calculationspro.core.calculation.DesignNetworkCalculator
 import com.electrical.calculationspro.core.calculation.DesignSummaryCalculator
 import com.electrical.calculationspro.core.calculation.ElectricalNetworkCalculator
 import com.electrical.calculationspro.core.calculation.GeneratorCalculator
 import com.electrical.calculationspro.core.calculation.LoadCalculator
 import com.electrical.calculationspro.core.calculation.LoadScheduleCalculator
+import com.electrical.calculationspro.core.calculation.MdbCalculator
 import com.electrical.calculationspro.core.calculation.MotorCalculator
+import com.electrical.calculationspro.core.calculation.ProtectionCalculator
 import com.electrical.calculationspro.core.calculation.PumpCalculator
 import com.electrical.calculationspro.core.calculation.ShortCircuitCalculator
 import com.electrical.calculationspro.core.calculation.TransformerCalculator
+import com.electrical.calculationspro.core.calculation.TransformerSizingCalculator
 import com.electrical.calculationspro.core.calculation.VoltageDropCalculator
 import com.electrical.calculationspro.core.calculation.PowerCalculator
+import com.electrical.calculationspro.core.sld.SldGenerator
 
 /**
- * SINGLE ENGINEERING FACADE.
+ * SINGLE PROFESSIONAL ENGINEERING FACADE.
  *
- * All engineering calculations must enter through this object.
+ * This is the only public entry point for engineering calculations.
  *
- * UI and ViewModels must not contain engineering formulas.
+ * UI
+ *  ↓
+ * ProfessionalEngineeringCore
+ *  ↓
+ * Individual engineering calculators
  */
 class ProfessionalEngineeringCore private constructor() {
 
@@ -30,7 +40,9 @@ class ProfessionalEngineeringCore private constructor() {
         LoadCalculator()
 
     val loadSchedule =
-        LoadScheduleCalculator(loads)
+        LoadScheduleCalculator(
+            loadCalculator = loads
+        )
 
     val voltageDrop =
         VoltageDropCalculator()
@@ -40,6 +52,11 @@ class ProfessionalEngineeringCore private constructor() {
 
     val breakers =
         BreakerCalculator()
+
+    val breakerSelection =
+        BreakerSelectionCalculator(
+            breaker = breakers
+        )
 
     val cables =
         CableCalculator(
@@ -52,6 +69,9 @@ class ProfessionalEngineeringCore private constructor() {
     val transformers =
         TransformerCalculator()
 
+    val transformerSizing =
+        TransformerSizingCalculator()
+
     val generators =
         GeneratorCalculator()
 
@@ -60,6 +80,9 @@ class ProfessionalEngineeringCore private constructor() {
 
     val pumps =
         PumpCalculator()
+
+    val protection =
+        ProtectionCalculator()
 
     val designSummary =
         DesignSummaryCalculator(
@@ -71,8 +94,28 @@ class ProfessionalEngineeringCore private constructor() {
             summary = designSummary
         )
 
+    val mdb =
+        MdbCalculator(
+            summary = designSummary
+        )
+
+    val designNetwork =
+        DesignNetworkCalculator(
+            network = network,
+            schedule = loadSchedule,
+            mdb = mdb,
+            transformer = transformerSizing
+        )
+
+    val sld =
+        SldGenerator(
+            loadCalculator = loads,
+            shortCircuit = shortCircuit
+        )
+
     companion object {
 
+        @JvmStatic
         val instance:
             ProfessionalEngineeringCore by lazy {
                 ProfessionalEngineeringCore()
