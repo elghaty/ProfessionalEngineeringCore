@@ -27,11 +27,18 @@ class DesignSummaryCalculator(
             2500.0,
             3150.0,
             4000.0,
-            5000.0
+            5000.0,
+            6300.0,
+            8000.0,
+            10000.0,
+            12500.0,
+            16000.0
         )
 
     private val breakerRatingsA =
         doubleArrayOf(
+            6.0,
+            10.0,
             16.0,
             20.0,
             25.0,
@@ -73,7 +80,9 @@ class DesignSummaryCalculator(
         require(designMargin >= 1.0)
 
         val schedule =
-            loadScheduleCalculator.calculate(loads)
+            loadScheduleCalculator.calculate(
+                loads
+            )
 
         val designKva =
             if (powerFactor > 0.0) {
@@ -87,7 +96,10 @@ class DesignSummaryCalculator(
         val mainCurrentA =
             if (designKva > 0.0) {
                 designKva * 1000.0 /
-                    (sqrt(3.0) * voltageV)
+                    (
+                        sqrt(3.0) *
+                            voltageV
+                        )
             } else {
                 0.0
             }
@@ -105,14 +117,24 @@ class DesignSummaryCalculator(
         return ProjectSummary(
             connectedLoadKw =
                 schedule.connectedLoadKw,
+
             demandLoadKw =
                 schedule.demandLoadKw,
+
             designLoadKw =
                 schedule.designLoadKw,
-            apparentPowerKva = designKva,
-            mainCurrentA = mainCurrentA,
-            recommendedTransformerKva = transformer,
-            recommendedMainBreakerA = breaker
+
+            apparentPowerKva =
+                designKva,
+
+            mainCurrentA =
+                mainCurrentA,
+
+            recommendedTransformerKva =
+                transformer,
+
+            recommendedMainBreakerA =
+                breaker
         )
     }
 }
