@@ -8,35 +8,107 @@ data class LoadResult(
     val connectedKw: Double,
     val demandKw: Double,
     val designKw: Double,
-    val currentA: Double
+    val apparentPowerKva: Double,
+    val reactivePowerKvar: Double,
+    val currentA: Double,
+    val startingCurrentA: Double,
+    val loadPowerFactor: Double,
+    val utilizationPercent: Double
 )
 
 class LoadCalculator {
 
     fun calculate(load: ElectricalLoad): LoadResult {
-        require(load.quantity > 0)
-        require(load.powerKw >= 0.0)
-        require(load.powerFactor in 0.01..1.0)
-        require(load.efficiency in 0.01..1.0)
-        require(load.demandFactor in 0.0..1.0)
-        require(load.diversityFactor > 0.0)
-        require(load.voltage > 0.0)
-
-        val connected = load.powerKw * load.quantity
-        val demand = connected * load.demandFactor
-        val design = demand / load.diversityFactor
-
-        val current = if (load.phase == Phase.THREE) {
-            design * 1000.0 / (sqrt(3.0) * load.voltage * load.powerFactor)
-        } else {
-            design * 1000.0 / (load.voltage * load.powerFactor)
+        require(load.quantity > 0) {
+            "Load quantity must be greater than zero."
         }
 
+        require(load.powerKw >= 0.0) {
+            "Load power cannot be negative."
+        }
+
+        require(load.powerFactor in 0.01..1.0) {
+            "Power factor must be between 0.01 and 1.0."
+        }
+
+        require(load.efficiency in 0.01..1.0) {
+            "Efficiency must be between 0.01 and 1.0."
+        }
+
+        require(load.demandFactor in 0.0..1.0) {
+            "Demand factor must be between 0 and 1."
+        }
+
+        require(load.diversityFactor > 0.0) {
+            "Diversity factor must be greater than zero."
+        }
+
+        require(load.voltage > 0.0) {
+            "Voltage must be greater than zero."
+        }
+
+        require(load.startingCurrentMultiplier >= 0.0) {
+            "Starting current multiplier cannot be negative."
+        }
+
+        val connectedKw = load.powerKw * load.quantity
+
+        /*
+         * powerKw is treated as the electrical input power.
+         * Efficiency is therefore not applied again to the normal
+         * electrical demand calculation.
+         */
+        val demandKw = connectedKw * load.demandFactor
+
+        val designKw =
+            demandKw / load.diversityFactor
+
+        val apparentPowerKva =
+            designKw / load.powerFactor
+
+        val reactivePowerKvar =
+            apparentPowerKva *
+                sqrt(
+                    (1.0 - load.powerFactor * load.powerFactor)
+                        .coerceAtLeast(0.0)
+                )
+
+        val currentA =
+            if (load.phase == Phase.THREE) {
+                designKw * 1000.0 /
+                    (
+                        sqrt(3.0) *
+                            load.voltage *
+                            load.powerFactor
+                        )
+            } else {
+                designKw * 1000.0 /
+                    (
+                        load.voltage *
+                            load.powerFactor
+                        )
+            }
+
+        val startingCurrentA =
+            currentA * load.startingCurrentMultiplier
+
+        val utilizationPercent =
+            if (connectedKw <= 0.0) {
+                0.0
+            } else {
+                demandKw / connectedKw * 100.0
+            }
+
         return LoadResult(
-            connectedKw = connected,
-            demandKw = demand,
-            designKw = design,
-            currentA = current
+            connectedKw = connectedKw,
+            demandKw = demandKw,
+            designKw = designKw,
+            apparentPowerKva = apparentPowerKva,
+            reactivePowerKvar = reactivePowerKvar,
+            currentA = currentA,
+            startingCurrentA = startingCurrentA,
+            loadPowerFactor = load.powerFactor,
+            utilizationPercent = utilizationPercent
         )
     }
 }
