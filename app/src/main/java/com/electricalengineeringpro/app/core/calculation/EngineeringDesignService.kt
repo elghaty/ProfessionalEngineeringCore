@@ -2,6 +2,8 @@ package com.electricalengineeringpro.app.core.calculation
 
 import com.electricalengineeringpro.app.core.ProfessionalEngineeringCore
 import com.electricalengineeringpro.app.core.model.ElectricalLoad
+import com.electricalengineeringpro.app.core.model.Phase
+import com.electricalengineeringpro.app.core.model.ShortCircuitInput
 
 data class CompleteDesignInput(
     val loads: List<ElectricalLoad>,
@@ -16,6 +18,7 @@ data class CompleteDesignResult(
     val designCurrentA: Double,
     val transformerKva: Double,
     val mainBreakerA: Double,
+    val breakerBreakingCapacityKA: Double,
     val shortCircuitKA: Double
 )
 
@@ -27,6 +30,10 @@ class EngineeringDesignService(
     fun calculate(
         input: CompleteDesignInput
     ): CompleteDesignResult {
+
+        require(input.loads.isNotEmpty()) {
+            "At least one electrical load is required."
+        }
 
         val network =
             core.network.calculate(
@@ -48,15 +55,14 @@ class EngineeringDesignService(
 
         val shortCircuit =
             core.shortCircuit.calculate(
-                com.electricalengineeringpro.app.core.model.ShortCircuitInput(
+                ShortCircuitInput(
                     transformerKva =
                         transformer.selectedKva,
                     transformerImpedancePercent =
                         input.transformerImpedancePercent,
                     voltageV =
                         input.voltageV,
-                    phase =
-                        com.electricalengineeringpro.app.core.model.Phase.THREE_PHASE
+                    phase = Phase.THREE_PHASE
                 )
             )
 
@@ -81,6 +87,8 @@ class EngineeringDesignService(
                 transformer.selectedKva,
             mainBreakerA =
                 breaker.ratedCurrentA,
+            breakerBreakingCapacityKA =
+                breaker.breakingCapacityKA,
             shortCircuitKA =
                 shortCircuit.prospectiveFaultCurrentKA
         )
