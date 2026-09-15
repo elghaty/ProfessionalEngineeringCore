@@ -1,4 +1,4 @@
-package com.electrical.calculationspro.core.calculators
+package com.electrical.calculationspro.core.calculation
 
 import kotlin.math.sqrt
 
@@ -41,48 +41,26 @@ data class PanelResult(
     val notes: List<String>
 )
 
-class PanelCalculator {
+class PanelCalculator(
+    private val breaker: BreakerCalculator = BreakerCalculator()
+) {
 
-    private val standardBreakers =
-        listOf(
-            6.0,
-            10.0,
-            16.0,
-            20.0,
-            25.0,
-            32.0,
-            40.0,
-            50.0,
-            63.0,
-            80.0,
-            100.0,
-            125.0,
-            160.0,
-            200.0,
-            250.0,
-            315.0,
-            400.0,
-            500.0,
-            630.0,
-            800.0,
-            1000.0,
-            1250.0,
-            1600.0,
-            2000.0,
-            2500.0,
-            3200.0,
-            4000.0,
-            5000.0,
-            6300.0
-        )
+    fun calculate(input: PanelInput): PanelResult {
 
-    fun calculate(
-        input: PanelInput
-    ): PanelResult {
+        require(input.name.isNotBlank())
+        require(input.voltageV > 0.0)
+        require(input.spareCapacityFactor >= 1.0)
 
-        validate(input)
+        input.feeders.forEach {
+            require(it.name.isNotBlank())
+            require(it.loadKw >= 0.0)
+            require(it.powerFactor in 0.01..1.0)
+            require(it.voltageV > 0.0)
+            require(it.demandFactor in 0.0..1.0)
+            require(it.cableCapacityA >= 0.0)
+        }
 
-        val feederResults =
+        val feeders =
             input.feeders.map { feeder ->
 
                 val demandKw =
@@ -94,20 +72,11 @@ class PanelCalculator {
                         feeder.powerFactor
 
                 val current =
-                    kva *
-                        1000.0 /
-                        (
-                            sqrt(3.0) *
-                                feeder.voltageV
-                            )
+                    kva * 1000.0 /
+                        (sqrt(3.0) * feeder.voltageV)
 
-                val breaker =
-                    nextBreaker(current)
-
-                val cableAdequate =
-                    feeder.cableCapacityA <= 0.0 ||
-                        feeder.cableCapacityA >=
-                        breaker
+                val selectedBreaker =
+                    breaker.selectRating(current)
 
                 PanelFeederResult(
                     name = feeder.name,
@@ -115,104 +84,39 @@ class PanelCalculator {
                     demandKw = demandKw,
                     apparentPowerKva = kva,
                     currentA = current,
-                    recommendedBreakerA = breaker,
-                    cableCapacityA =
-                        feeder.cableCapacityA,
+                    recommendedBreakerA = selectedBreaker,
+                    cableCapacityA = feeder.cableCapacityA,
                     cableAdequate =
-                        cableAdequate
+                        feeder.cableCapacityA <= 0.0 ||
+                            feeder.cableCapacityA >= selectedBreaker
                 )
             }
 
         val connected =
-            input.feeders.sumOf {
-                it.loadKw
-            }
+            input.feeders.sumOf { it.loadKw }
 
         val demand =
-            feederResults.sumOf {
-                it.demandKw
-            }
+            feeders.sumOf { it.demandKw }
 
         val kva =
-            if (input.voltageV > 0.0) {
-                feederResults.sumOf {
-                    it.apparentPowerKva
-                }
-            } else {
-                0.0
-            }
+            feeders.sumOf { it.apparentPowerKva }
 
         val designKva =
-            kva *
-                input.spareCapacityFactor
+            kva * input.spareCapacityFactor
 
         val designCurrent =
-            designKva *
-                1000.0 /
-                (
-                    sqrt(3.0) *
-                        input.voltageV
-                    )
+            designKva * 1000.0 /
+                (sqrt(3.0) * input.voltageV)
 
         val mainBreaker =
-            nextBreaker(designCurrent)
-
-        val requiredBusbar =
-            designCurrent
+            breaker.selectRating(designCurrent)
 
         val warnings =
-            feederResults
-                .filterNot {
-                    it.cableAdequate
-                }
+            feeders
+                .filterNot { it.cableAdequate }
                 .map {
                     "Feeder ${it.name}: cable capacity is below the selected breaker."
                 }
-
-        val notes =
-            buildList {
-
-                add(
-                    "Panel = ${input.name}"
-                )
-
-                add(
-                    "Connected load = %.2f kW"
-                        .format(connected)
-                )
-
-                add(
-                    "Demand load = %.2f kW"
-                        .format(demand)
-                )
-
-                add(
-                    "Calculated apparent power = %.2f kVA"
-                        .format(kva)
-                )
-
-                add(
-                    "Design apparent power = %.2f kVA"
-                        .format(designKva)
-                )
-
-                add(
-                    "Design current = %.2f A"
-                        .format(designCurrent)
-                )
-
-                add(
-                    "Recommended main breaker = %.0f A"
-                        .format(mainBreaker)
-                )
-
-                add(
-                    "Required busbar current = %.0f A"
-                        .format(requiredBusbar)
-                )
-
-                addAll(warnings)
-            }
 
         return PanelResult(
             name = input.name,
@@ -220,75 +124,22 @@ class PanelCalculator {
             demandLoadKw = demand,
             apparentPowerKva = kva,
             designCurrentA = designCurrent,
-            recommendedMainBreakerA =
-                mainBreaker,
-            requiredBusbarCurrentA =
-                requiredBusbar,
-            feeders = feederResults,
-            notes = notes
+            recommendedMainBreakerA = mainBreaker,
+            requiredBusbarCurrentA = designCurrent,
+            feeders = feeders,
+            notes =
+                listOf(
+                    "Panel = ${input.name}",
+                    "Connected load = %.2f kW".format(connected),
+                    "Demand load = %.2f kW".format(demand),
+                    "Apparent power = %.2f kVA".format(kva),
+                    "Design apparent power = %.2f kVA"
+                        .format(designKva),
+                    "Design current = %.2f A"
+                        .format(designCurrent),
+                    "Main breaker = %.0f A"
+                        .format(mainBreaker)
+                ) + warnings
         )
-    }
-
-    private fun nextBreaker(
-        currentA: Double
-    ): Double {
-
-        return standardBreakers.firstOrNull {
-            it >= currentA
-        } ?: standardBreakers.last()
-    }
-
-    private fun validate(
-        input: PanelInput
-    ) {
-
-        require(input.name.isNotBlank()) {
-            "Panel name is required."
-        }
-
-        require(input.voltageV > 0.0) {
-            "Panel voltage must be greater than zero."
-        }
-
-        require(
-            input.spareCapacityFactor >= 1.0
-        ) {
-            "Spare capacity factor must be at least 1.0."
-        }
-
-        input.feeders.forEach {
-
-            require(it.name.isNotBlank()) {
-                "Every feeder must have a name."
-            }
-
-            require(it.loadKw >= 0.0) {
-                "Feeder load cannot be negative."
-            }
-
-            require(
-                it.powerFactor > 0.0 &&
-                    it.powerFactor <= 1.0
-            ) {
-                "Power factor must be between 0 and 1."
-            }
-
-            require(it.voltageV > 0.0) {
-                "Feeder voltage must be greater than zero."
-            }
-
-            require(
-                it.demandFactor >= 0.0 &&
-                    it.demandFactor <= 1.0
-            ) {
-                "Demand factor must be between 0 and 1."
-            }
-
-            require(
-                it.cableCapacityA >= 0.0
-            ) {
-                "Cable capacity cannot be negative."
-            }
-        }
     }
 }
