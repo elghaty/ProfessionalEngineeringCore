@@ -17,43 +17,55 @@ class ProfessionalEngineeringFacade(
     fun calculateGenerator(
         input: GeneratorInput
     ): EngineeringResult<GeneratorResult> =
-        runCalculation {
+        execute {
             core.generators.calculate(input)
         }
 
     fun calculateProtection(
         input: ProtectionInput
     ): EngineeringResult<ProtectionResult> =
-        runCalculation {
+        execute {
             core.protection.calculate(input)
         }
 
     fun calculateMdb(
         input: MdbInput
     ): EngineeringResult<MdbResult> =
-        runCalculation {
+        execute {
             core.mdb.calculate(input)
         }
 
     fun calculateLoadSchedule(
         loads: List<ElectricalLoad>
-    ) = runCalculation {
+    ) = execute {
         core.loadSchedule.calculate(loads)
     }
 
-    private inline fun <T> runCalculation(
-        calculation: () -> T
+    fun calculateNetwork(
+        loads: List<ElectricalLoad>,
+        voltageV: Double = 400.0,
+        powerFactor: Double = 0.9
+    ) = execute {
+        core.network.calculate(
+            loads = loads,
+            voltageV = voltageV,
+            powerFactor = powerFactor
+        )
+    }
+
+    private inline fun <T> execute(
+        block: () -> T
     ): EngineeringResult<T> {
 
         return try {
-            EngineeringResult.Success(calculation())
+            EngineeringResult.Success(block())
         } catch (e: IllegalArgumentException) {
             EngineeringResult.Error(
-                message = e.message ?: "Invalid engineering input."
+                e.message ?: "Invalid engineering input."
             )
         } catch (e: Exception) {
             EngineeringResult.Error(
-                message = e.message ?: "Engineering calculation failed."
+                e.message ?: "Engineering calculation failed."
             )
         }
     }
