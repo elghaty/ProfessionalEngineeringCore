@@ -1,6 +1,6 @@
 package com.electrical.calculationspro.core.calculation
 
-import com.electrical.calculationspro.core.model.SldElementType
+import com.electrical.calculationspro.core.model.SldElement
 import com.electrical.calculationspro.core.model.SldNetwork
 
 data class SldShortCircuitResult(
@@ -32,89 +32,23 @@ class SldShortCircuitCalculator(
 
         network.elements.forEach { element ->
 
-            if (element.voltageV <= 0.0) {
-                return@forEach
-            }
-
-            val connection =
-                network.connections.firstOrNull {
-                    it.toId == element.id
-                }
-
-            val cableLength =
-                if (connection != null) {
-                    connection.lengthM
-                } else {
-                    element.cableLengthM
-                }
-
-            val cableResistance =
-                if (connection != null) {
-                    connection.cableResistanceOhmPerKm
-                } else {
-                    element.cableResistanceOhmPerKm
-                }
-
-            val cableReactance =
-                if (connection != null) {
-                    connection.cableReactanceOhmPerKm
-                } else {
-                    element.cableReactanceOhmPerKm
-                }
-
-            val parallelRuns =
-                if (connection != null) {
-                    connection.parallelRuns
-                } else {
-                    element.parallelRuns
-                }
-
-            val sourceMva =
-                when {
-                    element.sourceShortCircuitMva > 0.0 ->
-                        element.sourceShortCircuitMva
-
-                    else ->
-                        sourceShortCircuitMva
-                }
-
-            val result =
-                shortCircuitCalculator.calculate(
-                    ShortCircuitInput(
-                        voltageV =
-                            element.voltageV,
-
-                        sourceShortCircuitMva =
-                            sourceMva,
-
-                        sourceXOverR =
-                            element.sourceXOverR,
-
-                        transformerKva =
-                            element.transformerKva,
-
-                        transformerPercentZ =
-                            element.transformerPercentZ,
-
-                        cableLengthM =
-                            cableLength,
-
-                        cableResistanceOhmPerKm =
-                            cableResistance,
-
-                        cableReactanceOhmPerKm =
-                            cableReactance,
-
-                        parallelRuns =
-                            parallelRuns,
-
-                        voltageFactor =
-                            voltageFactor
-                    )
+            val input =
+                buildInputForElement(
+                    network = network,
+                    element = element,
+                    sourceShortCircuitMva =
+                        sourceShortCircuitMva,
+                    voltageFactor =
+                        voltageFactor
                 )
 
-            results[element.id] =
-                result
+            if (input != null) {
+
+                results[element.id] =
+                    shortCircuitCalculator.calculate(
+                        input
+                    )
+            }
         }
 
         val maximum =
@@ -148,5 +82,187 @@ class SldShortCircuitCalculator(
             minimumFaultLocationId =
                 minimum?.key
         )
+    }
+
+    private fun buildInputForElement(
+        network: SldNetwork,
+        element: SldElement,
+        sourceShortCircuitMva: Double,
+        voltageFactor: Double
+    ): ShortCircuitInput? {
+
+        if (element.voltageV <= 0.0) {
+            return null
+        }
+
+        val path =
+            upstreamConnections(
+                network = network,
+                elementId = element.id
+            )
+
+        var totalCableR = 0.0
+        var totalCableX = 0.0
+
+        path.forEach { connection ->
+
+            val runs =
+                connection.parallelRuns
+                    .coerceAtLeast(1)
+
+            totalCableR +=
+                connection.cableResistanceOhmPerKm *
+                    connection.lengthM /
+                    1000.0 /
+                    runs
+
+            totalCableX +=
+                connection.cableReactanceOhmPerKm *
+                    connection.lengthM /
+                    1000.0 /
+                    runs
+        }
+
+        val localConnection =
+            network.connections.firstOrNull {
+                it.toId == element.id
+            }
+
+        val sourceMva =
+            if (
+                element.sourceShortCircuitMva > 0.0
+            ) {
+                element.sourceShortCircuitMva
+            } else {
+                sourceShortCircuitMva
+            }
+
+        val localLength =
+            if (
+                localConnection != null
+            ) {
+                localConnection.lengthM
+            } else {
+                0.0
+            }
+
+        return ShortCircuitInput(
+            voltageV =
+                element.voltageV,
+
+            sourceShortCircuitMva =
+                sourceMva,
+
+            sourceXOverR =
+                element.sourceXOverR,
+
+            transformerKva =
+                element.transformerKva,
+
+            transformerPercentZ =
+                element.transformerPercentZ,
+
+            cableLengthM =
+                localLength,
+
+            cableResistanceOhmPerKm =
+                if (localConnection != null) {
+                    localConnection
+                        .cableResistanceOhmPerKm
+                } else {
+                    0.0
+                },
+
+            cableReactanceOhmPerKm =
+                if (localConnection != null) {
+                    localConnection
+                        .cableReactanceOhmPerKm
+                } else {
+                    0.0
+                },
+
+            parallelRuns =
+                localConnection
+                    ?.parallelRuns
+                    ?.coerceAtLeast(1)
+                    ?: 1,
+
+            voltageFactor =
+                voltageFactor
+        ).let { input ->
+
+            /*
+             * Upstream feeder impedance is accumulated
+             * here so the SLD fault study reflects the
+             * network topology.
+             */
+            if (
+                totalCableR == 0.0 &&
+                totalCableX == 0.0
+            ) {
+                input
+            } else {
+                val effectiveR =
+                    totalCableR +
+                        (
+                            input.cableResistanceOhmPerKm *
+                                input.cableLengthM /
+                                1000.0 /
+                                input.parallelRuns
+                            )
+
+                val effectiveX =
+                    totalCableX +
+                        (
+                            input.cableReactanceOhmPerKm *
+                                input.cableLengthM /
+                                1000.0 /
+                                input.parallelRuns
+                            )
+
+                input.copy(
+                    cableLengthM = 1000.0,
+                    cableResistanceOhmPerKm =
+                        effectiveR,
+                    cableReactanceOhmPerKm =
+                        effectiveX,
+                    parallelRuns = 1
+                )
+            }
+        }
+    }
+
+    private fun upstreamConnections(
+        network: SldNetwork,
+        elementId: String
+    ): List<com.electrical.calculationspro.core.model.SldConnection> {
+
+        val result =
+            mutableListOf<
+                com.electrical.calculationspro.core.model.SldConnection
+            >()
+
+        var currentId =
+            elementId
+
+        val visited =
+            mutableSetOf<String>()
+
+        while (
+            visited.add(currentId)
+        ) {
+
+            val connection =
+                network.connections.firstOrNull {
+                    it.toId == currentId
+                } ?: break
+
+            result += connection
+
+            currentId =
+                connection.fromId
+        }
+
+        return result
     }
 }
