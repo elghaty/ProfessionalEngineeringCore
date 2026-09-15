@@ -3,59 +3,53 @@ package com.electrical.calculationspro.core.calculation
 import com.electrical.calculationspro.core.model.SldNetwork
 
 data class SldShortCircuitResult(
-    val nodeResults: Map<String, ShortCircuitResult>
+    val results: Map<String, ShortCircuitResult>
 )
 
 class SldShortCircuitCalculator(
-    private val shortCircuit: ShortCircuitCalculator =
+    private val shortCircuitCalculator: ShortCircuitCalculator =
         ShortCircuitCalculator()
 ) {
 
     fun calculate(
         network: SldNetwork,
+        sourceShortCircuitMva: Double = 1000.0,
         voltageFactor: Double = 1.05
     ): SldShortCircuitResult {
 
-        require(network.elements.isNotEmpty()) {
-            "SLD network is empty."
+        require(network.elements.isNotEmpty())
+        require(sourceShortCircuitMva > 0.0)
+        require(voltageFactor > 0.0)
+
+        val results =
+            linkedMapOf<String, ShortCircuitResult>()
+
+        network.elements.forEach { element ->
+
+            if (element.voltageV <= 0.0) {
+                return@forEach
+            }
+
+            val result =
+                shortCircuitCalculator.calculate(
+                    ShortCircuitInput(
+                        voltageV = element.voltageV,
+                        sourceShortCircuitMva =
+                            sourceShortCircuitMva,
+                        transformerKva =
+                            element.transformerKva,
+                        transformerPercentZ =
+                            element.transformerPercentZ,
+                        voltageFactor =
+                            voltageFactor
+                    )
+                )
+
+            results[element.id] = result
         }
 
-        val results = linkedMapOf<String, ShortCircuitResult>()
-
-        network.elements
-            .filter { element ->
-                element.voltageV > 0.0
-            }
-            .forEach { element ->
-
-                val result =
-                    shortCircuit.calculate(
-                        ShortCircuitInput(
-                            voltageV = element.voltageV,
-                            sourceShortCircuitMva =
-                                element.sourceShortCircuitMva,
-                            transformerKva =
-                                element.transformerKva,
-                            transformerPercentZ =
-                                element.transformerPercentZ,
-                            cableLengthM =
-                                element.cableLengthM,
-                            cableResistanceOhmPerKm =
-                                element.cableResistanceOhmPerKm,
-                            cableReactanceOhmPerKm =
-                                element.cableReactanceOhmPerKm,
-                            parallelRuns =
-                                element.parallelRuns.coerceAtLeast(1),
-                            voltageFactor =
-                                voltageFactor
-                        )
-                    )
-
-                results[element.id] = result
-            }
-
         return SldShortCircuitResult(
-            nodeResults = results
+            results = results
         )
     }
 }
