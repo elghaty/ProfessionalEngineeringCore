@@ -1,14 +1,36 @@
-# ProfessionalEngineeringCore
+# Professional Engineering Core
 
-This directory is the single engineering calculation boundary of the application.
+This is the single engineering calculation boundary.
 
-The core is intentionally modular.
+The core is NOT one giant file.
 
-ProfessionalEngineeringCore.kt is the public facade.
+It is a modular engineering system composed of independent calculators.
 
-Individual calculators are isolated so that each engineering discipline can be modified,
-tested, validated, and extended independently without creating a monolithic calculation file.
+## Rules
 
-UI layers must never contain engineering formulas.
+- UI contains no engineering formulas.
+- ViewModels contain no engineering formulas.
+- Repositories contain no engineering formulas.
+- Database contains no engineering formulas.
+- Each engineering calculation has its own calculator.
+- ProfessionalEngineeringCore is the single public engineering entry point.
+- Every calculator must be independently testable.
+- Engineering units are explicit.
+- Power is internally represented in kW.
+- Apparent power is represented in kVA.
+- Current is represented in A.
+- Voltage is represented in V.
+- Short-circuit current is represented in kA.
 
-All engineering calculations must enter through this core.
+## Future Modules
+
+- GeneratorCalculator
+- ProtectionCalculator
+- CoordinationCalculator
+- EarthingCalculator
+- ArcFlashCalculator
+- HarmonicsCalculator
+- SolarCalculator
+- BatteryCalculator
+
+These modules must be added without creating a second engineering core.
