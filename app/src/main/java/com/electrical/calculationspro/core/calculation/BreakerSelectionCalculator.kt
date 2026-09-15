@@ -1,58 +1,52 @@
 package com.electrical.calculationspro.core.calculation
 
+import com.electrical.calculationspro.core.model.BreakerResult
 import com.electrical.calculationspro.core.model.BreakerType
 
 data class BreakerSelectionInput(
     val designCurrentA: Double,
     val cableCapacityA: Double,
-    val shortCircuitKA: Double,
-    val preferredType: BreakerType = BreakerType.MCCB
-)
-
-data class BreakerSelectionResult(
-    val selectedRatingA: Double,
-    val type: BreakerType,
-    val icuKA: Double,
-    val icsKA: Double,
-    val acceptable: Boolean,
-    val warnings: List<String>
+    val shortCircuitCurrentKA: Double,
+    val preferredType: BreakerType =
+        BreakerType.MCCB
 )
 
 class BreakerSelectionCalculator(
-    private val breaker:
+    private val breakerCalculator:
         BreakerCalculator =
         BreakerCalculator()
 ) {
 
     fun calculate(
         input: BreakerSelectionInput
-    ): BreakerSelectionResult {
+    ): BreakerResult {
 
-        val result =
-            breaker.calculate(
-                designCurrentA =
-                    input.designCurrentA,
-                cableCapacityA =
-                    input.cableCapacityA,
-                shortCircuitKA =
-                    input.shortCircuitKA,
-                preferredType =
-                    input.preferredType
-            )
+        return breakerCalculator.calculate(
+            designCurrentA =
+                input.designCurrentA,
 
-        return BreakerSelectionResult(
-            selectedRatingA =
-                result.ratedCurrentA,
-            type =
-                result.type,
-            icuKA =
-                result.icuKA,
-            icsKA =
-                result.icsKA,
-            acceptable =
-                result.acceptable,
-            warnings =
-                result.warnings
+            cableCapacityA =
+                input.cableCapacityA,
+
+            shortCircuitKA =
+                input.shortCircuitCurrentKA,
+
+            preferredType =
+                input.preferredType
         )
     }
+
+    fun selectRating(
+        designCurrentA: Double
+    ): Double =
+        breakerCalculator.selectRating(
+            designCurrentA
+        )
+
+    fun selectBreakingCapacity(
+        faultCurrentKA: Double
+    ): Double =
+        breakerCalculator.selectBreakingCapacity(
+            faultCurrentKA
+        )
 }
