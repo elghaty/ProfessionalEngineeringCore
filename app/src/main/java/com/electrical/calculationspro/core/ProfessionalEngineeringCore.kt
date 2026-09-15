@@ -1,48 +1,152 @@
 package com.electrical.calculationspro.core
 
+import com.electrical.calculationspro.core.calculation.BreakerCalculator
+import com.electrical.calculationspro.core.calculation.BreakerSelectionCalculator
+import com.electrical.calculationspro.core.calculation.CableCalculator
 import com.electrical.calculationspro.core.calculation.DesignSummaryCalculator
 import com.electrical.calculationspro.core.calculation.DiversityCalculator
+import com.electrical.calculationspro.core.calculation.ElectricalNetworkCalculator
+import com.electrical.calculationspro.core.calculation.GeneratorCalculator
 import com.electrical.calculationspro.core.calculation.LoadCalculator
 import com.electrical.calculationspro.core.calculation.LoadScheduleCalculator
+import com.electrical.calculationspro.core.calculation.MdbCalculator
+import com.electrical.calculationspro.core.calculation.MotorCalculator
+import com.electrical.calculationspro.core.calculation.PanelCalculator
+import com.electrical.calculationspro.core.calculation.PumpCalculator
 import com.electrical.calculationspro.core.calculation.PowerCalculator
+import com.electrical.calculationspro.core.calculation.ProtectionCalculator
+import com.electrical.calculationspro.core.calculation.ShortCircuitCalculator
+import com.electrical.calculationspro.core.calculation.SldShortCircuitCalculator
+import com.electrical.calculationspro.core.calculation.TransformerCalculator
+import com.electrical.calculationspro.core.calculation.TransformerSizingCalculator
+import com.electrical.calculationspro.core.calculation.VoltageDropCalculator
 import com.electrical.calculationspro.core.model.ElectricalLoad
 import com.electrical.calculationspro.core.model.Phase
 import com.electrical.calculationspro.core.model.PowerResult
 import com.electrical.calculationspro.core.model.ProjectSummaryResult
+import com.electrical.calculationspro.core.model.SldNetwork
+import com.electrical.calculationspro.core.model.SldResult
+import com.electrical.calculationspro.core.sld.SldGenerator
 
 /**
- * SINGLE ENGINEERING FACADE.
+ * SINGLE PUBLIC ENGINEERING FACADE.
  *
- * This is the only public engineering entry point
- * that the Android application should use.
+ * The application must use this class as the
+ * only engineering calculation entry point.
  *
- * UI and ViewModels must not contain engineering formulas.
- *
- * Internal engineering power unit:
- * kW.
+ * UI must never implement engineering formulas.
  */
 class ProfessionalEngineeringCore private constructor() {
 
-    private val powerCalculator =
+    val powerCalculator =
         PowerCalculator()
 
-    private val loadCalculator =
+    val loadCalculator =
         LoadCalculator(
-            powerCalculator = powerCalculator
+            powerCalculator =
+                powerCalculator
         )
 
-    private val loadScheduleCalculator =
+    val loadScheduleCalculator =
         LoadScheduleCalculator(
-            loadCalculator = loadCalculator
+            loadCalculator =
+                loadCalculator
         )
 
-    private val diversityCalculator =
+    val diversityCalculator =
         DiversityCalculator()
 
-    private val designSummaryCalculator =
+    val designSummaryCalculator =
         DesignSummaryCalculator(
             loadScheduleCalculator =
                 loadScheduleCalculator
+        )
+
+    val voltageDropCalculator =
+        VoltageDropCalculator()
+
+    val shortCircuitCalculator =
+        ShortCircuitCalculator()
+
+    val breakerCalculator =
+        BreakerCalculator()
+
+    val breakerSelectionCalculator =
+        BreakerSelectionCalculator(
+            breakerCalculator =
+                breakerCalculator
+        )
+
+    val cableCalculator =
+        CableCalculator(
+            loadCalculator =
+                loadCalculator,
+
+            voltageDropCalculator =
+                voltageDropCalculator,
+
+            shortCircuitCalculator =
+                shortCircuitCalculator,
+
+            breakerCalculator =
+                breakerCalculator
+        )
+
+    val transformerCalculator =
+        TransformerCalculator()
+
+    val transformerSizingCalculator =
+        TransformerSizingCalculator()
+
+    val generatorCalculator =
+        GeneratorCalculator()
+
+    val motorCalculator =
+        MotorCalculator()
+
+    val pumpCalculator =
+        PumpCalculator()
+
+    val protectionCalculator =
+        ProtectionCalculator()
+
+    val panelCalculator =
+        PanelCalculator(
+            breaker =
+                breakerCalculator
+        )
+
+    val mdbCalculator =
+        MdbCalculator(
+            summary =
+                designSummaryCalculator
+        )
+
+    val electricalNetworkCalculator =
+        ElectricalNetworkCalculator(
+            loadScheduleCalculator =
+                loadScheduleCalculator,
+
+            transformerSizingCalculator =
+                transformerSizingCalculator,
+
+            breakerCalculator =
+                breakerCalculator
+        )
+
+    val sldShortCircuitCalculator =
+        SldShortCircuitCalculator(
+            shortCircuitCalculator =
+                shortCircuitCalculator
+        )
+
+    val sldGenerator =
+        SldGenerator(
+            loadCalculator =
+                loadCalculator,
+
+            shortCircuitCalculator =
+                sldShortCircuitCalculator
         )
 
     fun calculatePower(
@@ -50,34 +154,33 @@ class ProfessionalEngineeringCore private constructor() {
         voltageV: Double = 400.0,
         powerFactor: Double = 0.90,
         phase: Phase = Phase.THREE
-    ): PowerResult {
+    ): PowerResult =
+        powerCalculator.fromKw(
+            powerKw =
+                powerKw,
 
-        return powerCalculator.fromKw(
-            powerKw = powerKw,
-            voltageV = voltageV,
-            powerFactor = powerFactor,
-            phase = phase
+            voltageV =
+                voltageV,
+
+            powerFactor =
+                powerFactor,
+
+            phase =
+                phase
         )
-    }
 
     fun calculateLoad(
         load: ElectricalLoad
     ) =
-        loadCalculator.calculate(load)
+        loadCalculator.calculate(
+            load
+        )
 
     fun calculateLoadSchedule(
         loads: List<ElectricalLoad>
     ) =
-        loadScheduleCalculator.calculate(loads)
-
-    fun calculateDiversity(
-        loads: List<com.electrical.calculationspro.core.calculation.DiversityLoad>,
-        additionalDiversityFactor: Double = 1.0
-    ) =
-        diversityCalculator.calculate(
-            loads = loads,
-            additionalDiversityFactor =
-                additionalDiversityFactor
+        loadScheduleCalculator.calculate(
+            loads
         )
 
     fun calculateProjectSummary(
@@ -89,29 +192,58 @@ class ProfessionalEngineeringCore private constructor() {
 
         val result =
             designSummaryCalculator.calculate(
-                loads = loads,
-                voltageV = voltageV,
-                powerFactor = powerFactor,
-                designMargin = designMargin
+                loads =
+                    loads,
+
+                voltageV =
+                    voltageV,
+
+                powerFactor =
+                    powerFactor,
+
+                designMargin =
+                    designMargin
             )
 
         return ProjectSummaryResult(
             connectedLoadKw =
                 result.connectedLoadKw,
+
             demandLoadKw =
                 result.demandLoadKw,
+
             designLoadKw =
                 result.designLoadKw,
+
             apparentPowerKva =
                 result.apparentPowerKva,
+
             mainCurrentA =
                 result.mainCurrentA,
+
             recommendedTransformerKva =
                 result.recommendedTransformerKva,
+
             recommendedMainBreakerA =
                 result.recommendedMainBreakerA
         )
     }
+
+    fun generateSld(
+        network: SldNetwork,
+        sourceFaultMva: Double = 1000.0,
+        voltageFactor: Double = 1.05
+    ): SldResult =
+        sldGenerator.generate(
+            network =
+                network,
+
+            sourceFaultMva =
+                sourceFaultMva,
+
+            voltageFactor =
+                voltageFactor
+        )
 
     companion object {
 
