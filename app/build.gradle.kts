@@ -1,17 +1,38 @@
 plugins {
-    id("com.android.library")
+    id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
 }
 
+kotlin {
+    jvmToolchain(17)
+}
+
 android {
-    namespace = "com.electrical.calculationspro.core"
+    namespace = "com.electrical.calculationspro"
 
     compileSdk = 35
 
     defaultConfig {
+        applicationId = "com.electrical.calculationspro"
+
         minSdk = 24
+        targetSdk = 35
+
+        versionCode =
+            project.findProperty("versionCode")
+                ?.toString()
+                ?.toIntOrNull()
+                ?: System.getenv("VERSION_CODE")
+                    ?.toIntOrNull()
+                ?: 1
+
+        versionName =
+            project.findProperty("versionName")
+                ?.toString()
+                ?: System.getenv("VERSION_NAME")
+                ?: "1.0"
     }
 
     compileOptions {
@@ -24,13 +45,42 @@ android {
     }
 
     buildFeatures {
-        compose = false
-        buildConfig = false
+        compose = true
+        buildConfig = true
+    }
+
+    buildTypes {
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
     }
 }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
 
-    testImplementation("junit:junit:4.13.2")
+    implementation("androidx.activity:activity-compose:1.10.0")
+
+    implementation("androidx.compose.ui:ui:1.7.6")
+    implementation("androidx.compose.material3:material3:1.3.1")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.7.6")
+
+    debugImplementation(
+        "androidx.compose.ui:ui-tooling:1.7.6"
+    )
+
+    implementation(
+        "androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7"
+    )
+
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+
+    ksp("androidx.room:room-compiler:2.6.1")
 }
