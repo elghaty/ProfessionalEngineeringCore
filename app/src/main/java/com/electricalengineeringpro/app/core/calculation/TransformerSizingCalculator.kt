@@ -3,21 +3,21 @@ package com.electricalengineeringpro.app.core.calculation
 import kotlin.math.ceil
 
 data class TransformerSizingInput(
-    val demandLoadKw: Double,
-    val powerFactor: Double = 0.9,
-    val spareCapacity: Double = 0.2
+    val designLoadKW: Double,
+    val powerFactor: Double = 0.90,
+    val spareCapacityFactor: Double = 1.15
 )
 
 data class TransformerSizingResult(
-    val requiredKva: Double,
-    val selectedKva: Double,
+    val designLoadKW: Double,
+    val requiredKVA: Double,
+    val recommendedRatingKVA: Double,
     val utilizationPercent: Double
 )
 
 class TransformerSizingCalculator {
 
     private val standardRatings = listOf(
-        25.0,
         50.0,
         63.0,
         100.0,
@@ -35,42 +35,42 @@ class TransformerSizingCalculator {
         2000.0,
         2500.0,
         3150.0,
-        4000.0
+        4000.0,
+        5000.0
     )
 
-    fun calculate(
-        input: TransformerSizingInput
-    ): TransformerSizingResult {
+    fun calculate(input: TransformerSizingInput): TransformerSizingResult {
 
-        require(input.demandLoadKw >= 0.0)
-        require(input.powerFactor in 0.1..1.0)
-        require(input.spareCapacity >= 0.0)
+        require(input.designLoadKW >= 0.0)
+        require(input.powerFactor > 0.0 && input.powerFactor <= 1.0)
+        require(input.spareCapacityFactor >= 1.0)
 
-        val baseKva =
-            if (input.powerFactor > 0.0) {
-                input.demandLoadKw / input.powerFactor
-            } else {
+        val required =
+            if (input.designLoadKW == 0.0) {
                 0.0
+            } else {
+                input.designLoadKW /
+                    input.powerFactor *
+                    input.spareCapacityFactor
             }
 
-        val requiredKva =
-            baseKva * (1.0 + input.spareCapacity)
-
-        val selected =
-            standardRatings.firstOrNull {
-                it >= requiredKva
-            } ?: ceil(requiredKva / 500.0) * 500.0
+        val recommended =
+            standardRatings.firstOrNull { it >= required }
+                ?: ceil(required / 500.0) * 500.0
 
         val utilization =
-            if (selected > 0.0) {
-                baseKva / selected * 100.0
+            if (recommended > 0.0) {
+                input.designLoadKW /
+                    (recommended * input.powerFactor) *
+                    100.0
             } else {
                 0.0
             }
 
         return TransformerSizingResult(
-            requiredKva = requiredKva,
-            selectedKva = selected,
+            designLoadKW = input.designLoadKW,
+            requiredKVA = required,
+            recommendedRatingKVA = recommended,
             utilizationPercent = utilization
         )
     }
