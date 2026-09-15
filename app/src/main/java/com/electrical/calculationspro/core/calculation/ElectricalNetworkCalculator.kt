@@ -10,12 +10,22 @@ data class ElectricalNetworkResult(
     val totalKva: Double,
     val mainCurrentA: Double,
     val recommendedTransformerKva: Double,
-    val recommendedMainBreakerA: Double
+    val recommendedMainBreakerA: Double,
+    val feederResults: List<LoadResult>
 )
 
 class ElectricalNetworkCalculator(
-    private val summary: DesignSummaryCalculator =
-        DesignSummaryCalculator()
+    private val loadScheduleCalculator:
+        LoadScheduleCalculator =
+        LoadScheduleCalculator(),
+
+    private val transformerSizingCalculator:
+        TransformerSizingCalculator =
+        TransformerSizingCalculator(),
+
+    private val breakerCalculator:
+        BreakerCalculator =
+        BreakerCalculator()
 ) {
 
     fun calculate(
@@ -27,38 +37,70 @@ class ElectricalNetworkCalculator(
 
         require(voltageV > 0.0)
         require(powerFactor in 0.01..1.0)
+        require(designMargin >= 1.0)
 
-        val result =
-            summary.calculate(
-                loads = loads,
-                voltageV = voltageV,
-                powerFactor = powerFactor,
-                designMargin = designMargin
+        val schedule =
+            loadScheduleCalculator.calculate(
+                loads
             )
 
-        val current =
-            if (result.designKva > 0.0) {
-                result.designKva * 1000.0 /
-                    (sqrt(3.0) * voltageV)
+        val designKva =
+            schedule.designLoadKw /
+                powerFactor *
+                designMargin
+
+        val mainCurrent =
+            if (designKva > 0.0) {
+                designKva * 1000.0 /
+                    (
+                        sqrt(3.0) *
+                            voltageV
+                        )
             } else {
                 0.0
             }
 
+        val transformer =
+            transformerSizingCalculator.calculate(
+                TransformerSizingInput(
+                    designLoadKw =
+                        schedule.designLoadKw,
+                    powerFactor =
+                        powerFactor,
+                    designMargin =
+                        designMargin
+                )
+            )
+
+        val mainBreaker =
+            breakerCalculator.selectRating(
+                mainCurrent
+            )
+
         return ElectricalNetworkResult(
             totalConnectedKw =
-                result.connectedLoadKw,
+                schedule.connectedLoadKw,
+
             totalDemandKw =
-                result.demandLoadKw,
+                schedule.demandLoadKw,
+
             totalDesignKw =
-                result.designLoadKw,
+                schedule.designLoadKw,
+
             totalKva =
-                result.designKva,
+                designKva,
+
             mainCurrentA =
-                current,
+                mainCurrent,
+
             recommendedTransformerKva =
-                result.recommendedTransformerKva,
+                transformer.recommendedRatingKva,
+
             recommendedMainBreakerA =
-                result.recommendedMainBreakerA
+                mainBreaker,
+
+            feederResults =
+                schedule.individualResults
         )
     }
 }
