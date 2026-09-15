@@ -3,70 +3,80 @@ package com.electricalengineeringpro.app.core
 import com.electricalengineeringpro.app.core.calculation.BreakerCalculator
 import com.electricalengineeringpro.app.core.calculation.CableCalculator
 import com.electricalengineeringpro.app.core.calculation.DesignSummaryCalculator
+import com.electricalengineeringpro.app.core.calculation.ElectricalNetworkCalculator
 import com.electricalengineeringpro.app.core.calculation.GeneratorCalculator
 import com.electricalengineeringpro.app.core.calculation.LoadCalculator
 import com.electricalengineeringpro.app.core.calculation.LoadScheduleCalculator
 import com.electricalengineeringpro.app.core.calculation.MdbCalculator
 import com.electricalengineeringpro.app.core.calculation.MotorCalculator
-import com.electricalengineeringpro.app.core.calculation.NetworkCalculator
 import com.electricalengineeringpro.app.core.calculation.PowerCalculator
 import com.electricalengineeringpro.app.core.calculation.ProtectionCalculator
 import com.electricalengineeringpro.app.core.calculation.PumpCalculator
 import com.electricalengineeringpro.app.core.calculation.ShortCircuitCalculator
 import com.electricalengineeringpro.app.core.calculation.TransformerCalculator
+import com.electricalengineeringpro.app.core.calculation.TransformerSizingCalculator
 import com.electricalengineeringpro.app.core.calculation.VoltageDropCalculator
+import com.electricalengineeringpro.app.core.report.EngineeringReportGenerator
 import com.electricalengineeringpro.app.core.sld.SldGenerator
 
-/**
- * Single logical engineering calculation core.
- *
- * The core is intentionally modular:
- * each engineering domain owns its calculation logic,
- * while this class remains the single entry point.
- *
- * UI must never implement engineering formulas.
- */
 class ProfessionalEngineeringCore private constructor() {
 
-    val power = PowerCalculator()
+    val power =
+        PowerCalculator()
 
-    val loads = LoadCalculator()
+    val loads =
+        LoadCalculator()
 
-    val designSummary = DesignSummaryCalculator()
+    val designSummary =
+        DesignSummaryCalculator()
 
     val loadSchedule =
         LoadScheduleCalculator(loads)
 
-    val cables = CableCalculator()
+    val cables =
+        CableCalculator()
 
-    val breakers = BreakerCalculator()
+    val breakers =
+        BreakerCalculator()
 
-    val voltageDrop = VoltageDropCalculator()
+    val voltageDrop =
+        VoltageDropCalculator()
 
-    val shortCircuit = ShortCircuitCalculator()
+    val shortCircuit =
+        ShortCircuitCalculator()
 
-    val transformers = TransformerCalculator()
+    val transformers =
+        TransformerCalculator()
 
-    val generators = GeneratorCalculator()
+    val transformerSizing =
+        TransformerSizingCalculator()
 
-    val motors = MotorCalculator()
+    val generators =
+        GeneratorCalculator()
 
-    val pumps = PumpCalculator()
+    val motors =
+        MotorCalculator()
 
-    val protection = ProtectionCalculator()
+    val pumps =
+        PumpCalculator()
 
-    val mdb = MdbCalculator()
+    val protection =
+        ProtectionCalculator()
+
+    val mdb =
+        MdbCalculator()
 
     val network =
-        NetworkCalculator(
-            loadCalculator = loads,
-            designSummaryCalculator = designSummary,
-            shortCircuitCalculator = shortCircuit
-        )
+        ElectricalNetworkCalculator(loads)
 
-    val sld = SldGenerator()
+    val sld =
+        SldGenerator()
+
+    val reports =
+        EngineeringReportGenerator(this)
 
     companion object {
+
         val instance: ProfessionalEngineeringCore by lazy {
             ProfessionalEngineeringCore()
         }
