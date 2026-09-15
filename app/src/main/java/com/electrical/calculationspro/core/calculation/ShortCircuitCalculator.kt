@@ -1,64 +1,23 @@
-package com.electrical.calculationspro.core.calculators
+package com.electrical.calculationspro.core.calculation
 
+import com.electrical.calculationspro.core.model.Phase
+import kotlin.math.exp
 import kotlin.math.sqrt
 
 data class ShortCircuitInput(
-    val voltageV: Double = 400.0,
-    val systemFrequencyHz: Double = 50.0,
-
-    /**
-     * Upstream source short-circuit level.
-     *
-     * If supplied, it is expressed in kA.
-     */
-    val sourceShortCircuitKA: Double = 0.0,
-
-    /**
-     * Alternative upstream source representation.
-     *
-     * Short-circuit power in MVA.
-     */
-    val sourceShortCircuitMVA: Double = 0.0,
-
-    /**
-     * Transformer rating.
-     */
-    val transformerKVA: Double = 0.0,
-
-    /**
-     * Transformer impedance in percent.
-     */
+    val voltageV: Double,
+    val sourceShortCircuitMva: Double = 0.0,
+    val sourceXOverR: Double = 10.0,
+    val transformerKva: Double = 0.0,
     val transformerPercentZ: Double = 0.0,
-
-    /**
-     * Cable length in metres.
-     */
+    val transformerXOverR: Double = 10.0,
     val cableLengthM: Double = 0.0,
-
-    /**
-     * Cable resistance in ohm/km.
-     */
     val cableResistanceOhmPerKm: Double = 0.0,
-
-    /**
-     * Cable reactance in ohm/km.
-     */
     val cableReactanceOhmPerKm: Double = 0.0,
-
-    /**
-     * Number of parallel cable runs.
-     */
     val parallelRuns: Int = 1,
-
-    /**
-     * Fault type.
-     *
-     * Supported:
-     * - THREE_PHASE
-     * - LINE_TO_LINE
-     * - LINE_TO_NEUTRAL
-     */
-    val faultType: FaultType = FaultType.THREE_PHASE
+    val phase: Phase = Phase.THREE,
+    val faultType: FaultType = FaultType.THREE_PHASE,
+    val voltageFactor: Double = 1.0
 )
 
 enum class FaultType {
@@ -68,9 +27,6 @@ enum class FaultType {
 }
 
 data class ShortCircuitResult(
-    val sourceShortCircuitKA: Double,
-    val transformerShortCircuitKA: Double,
-    val faultCurrentKA: Double,
     val sourceImpedanceOhm: Double,
     val transformerImpedanceOhm: Double,
     val cableResistanceOhm: Double,
@@ -78,342 +34,250 @@ data class ShortCircuitResult(
     val totalResistanceOhm: Double,
     val totalReactanceOhm: Double,
     val totalImpedanceOhm: Double,
-    val faultType: FaultType,
-    val notes: List<String>
+    val faultCurrentKA: Double,
+    val faultMva: Double,
+    val peakFaultCurrentKA: Double,
+    val thermalI2tKa2s: Double,
+    val kappa: Double,
+    val xOverR: Double,
+    val rOverX: Double
 )
 
 class ShortCircuitCalculator {
 
-    private const val EPSILON = 1.0e-9
+    fun calculate(input: ShortCircuitInput): ShortCircuitResult {
+        require(input.voltageV > 0.0)
+        require(input.sourceShortCircuitMva >= 0.0)
+        require(input.sourceXOverR >= 0.0)
+        require(input.transformerKva >= 0.0)
+        require(input.transformerPercentZ >= 0.0)
+        require(input.transformerXOverR >= 0.0)
+        require(input.cableLengthM >= 0.0)
+        require(input.cableResistanceOhmPerKm >= 0.0)
+        require(input.cableReactanceOhmPerKm >= 0.0)
+        require(input.parallelRuns > 0)
+        require(input.voltageFactor > 0.0)
 
-    fun calculate(
-        input: ShortCircuitInput
-    ): ShortCircuitResult {
-
-        validate(input)
-
-        val sourceFaultKA =
-            when {
-                input.sourceShortCircuitKA > EPSILON ->
-                    input.sourceShortCircuitKA
-
-                input.sourceShortCircuitMVA > EPSILON ->
-                    sourceMvaToFaultCurrentKA(
-                        input.sourceShortCircuitMVA,
-                        input.voltageV
-                    )
-
-                else ->
-                    0.0
-            }
-
-        val sourceImpedance =
-            if (sourceFaultKA > EPSILON) {
-
-                faultVoltage(
-                    input.voltageV,
-                    input.faultType
-                ) /
-                    (sourceFaultKA * 1000.0)
-
+        val sourceZ =
+            if (input.sourceShortCircuitMva > 0.0) {
+                input.voltageV * input.voltageV /
+                    (input.sourceShortCircuitMva * 1_000_000.0)
             } else {
                 0.0
             }
 
-        val transformerImpedance =
+        val transformerZ =
             if (
-                input.transformerKVA > EPSILON &&
-                input.transformerPercentZ > EPSILON
+                input.transformerKva > 0.0 &&
+                input.transformerPercentZ > 0.0
             ) {
-
-                transformerImpedance(
-                    input.voltageV,
-                    input.transformerKVA,
-                    input.transformerPercentZ
-                )
-
+                input.voltageV * input.voltageV /
+                    (input.transformerKva * 1_000.0) *
+                    (input.transformerPercentZ / 100.0)
             } else {
                 0.0
             }
 
-        val transformerFaultKA =
-            if (
-                input.transformerKVA > EPSILON &&
-                input.transformerPercentZ > EPSILON
-            ) {
-
-                transformerFaultCurrentKA(
-                    input.transformerKVA,
-                    input.voltageV,
-                    input.transformerPercentZ
-                )
-
-            } else {
-                0.0
-            }
-
-        val runs =
-            input.parallelRuns
-                .coerceAtLeast(1)
-
-        val lengthKm =
-            input.cableLengthM / 1000.0
-
-        val cableResistance =
+        val cableR =
             input.cableResistanceOhmPerKm *
-                lengthKm /
-                runs
+                input.cableLengthM /
+                1000.0 /
+                input.parallelRuns
 
-        val cableReactance =
+        val cableX =
             input.cableReactanceOhmPerKm *
-                lengthKm /
-                runs
+                input.cableLengthM /
+                1000.0 /
+                input.parallelRuns
 
-        val totalResistance =
-            sourceImpedance +
-                transformerImpedance +
-                cableResistance
+        val sourceR =
+            if (sourceZ > 0.0 && input.sourceXOverR > 0.0) {
+                sourceZ /
+                    sqrt(
+                        1.0 +
+                            input.sourceXOverR *
+                            input.sourceXOverR
+                    )
+            } else {
+                if (sourceZ > 0.0) sourceZ else 0.0
+            }
 
-        val totalReactance =
-            cableReactance
+        val sourceX =
+            if (sourceZ > 0.0) {
+                if (input.sourceXOverR > 0.0) {
+                    sourceR * input.sourceXOverR
+                } else {
+                    0.0
+                }
+            } else {
+                0.0
+            }
 
-        val totalImpedance =
+        val transformerR =
+            if (transformerZ > 0.0 && input.transformerXOverR > 0.0) {
+                transformerZ /
+                    sqrt(
+                        1.0 +
+                            input.transformerXOverR *
+                            input.transformerXOverR
+                    )
+            } else {
+                if (transformerZ > 0.0) transformerZ else 0.0
+            }
+
+        val transformerX =
+            if (transformerZ > 0.0) {
+                if (input.transformerXOverR > 0.0) {
+                    transformerR * input.transformerXOverR
+                } else {
+                    0.0
+                }
+            } else {
+                0.0
+            }
+
+        val totalR =
+            sourceR +
+                transformerR +
+                cableR
+
+        val totalX =
+            sourceX +
+                transformerX +
+                cableX
+
+        val totalZ =
             sqrt(
-                totalResistance *
-                    totalResistance +
-                    totalReactance *
-                    totalReactance
-            ).coerceAtLeast(EPSILON)
-
-        val faultVoltage =
-            faultVoltage(
-                input.voltageV,
-                input.faultType
+                totalR * totalR +
+                    totalX * totalX
             )
 
-        val faultCurrentA =
-            faultVoltage /
-                totalImpedance
+        val phaseVoltage =
+            when (input.faultType) {
+                FaultType.THREE_PHASE ->
+                    input.voltageV / sqrt(3.0)
+
+                FaultType.LINE_TO_LINE ->
+                    input.voltageV
+
+                FaultType.LINE_TO_NEUTRAL ->
+                    input.voltageV / sqrt(3.0)
+            }
+
+        val baseCurrentA =
+            if (totalZ > 0.0) {
+                phaseVoltage / totalZ
+            } else {
+                0.0
+            }
 
         val faultCurrentKA =
-            faultCurrentA /
-                1000.0
+            when (input.faultType) {
+                FaultType.THREE_PHASE ->
+                    baseCurrentA *
+                        input.voltageFactor /
+                        1000.0
+
+                FaultType.LINE_TO_LINE ->
+                    baseCurrentA *
+                        sqrt(3.0) *
+                        input.voltageFactor /
+                        1000.0
+
+                FaultType.LINE_TO_NEUTRAL ->
+                    baseCurrentA *
+                        input.voltageFactor /
+                        1000.0
+            }
+
+        val xOverR =
+            if (totalR > 0.0) {
+                totalX / totalR
+            } else {
+                Double.POSITIVE_INFINITY
+            }
+
+        val rOverX =
+            if (totalX > 0.0) {
+                totalR / totalX
+            } else {
+                Double.POSITIVE_INFINITY
+            }
+
+        val kappa =
+            if (rOverX.isFinite()) {
+                1.02 +
+                    0.98 *
+                    exp(-3.0 * rOverX)
+            } else {
+                1.02
+            }
+
+        val peakFaultCurrentKA =
+            faultCurrentKA *
+                sqrt(2.0) *
+                kappa
+
+        val thermalI2tKa2s =
+            faultCurrentKA *
+                faultCurrentKA
+
+        val faultMva =
+            when (input.faultType) {
+                FaultType.THREE_PHASE ->
+                    sqrt(3.0) *
+                        input.voltageV *
+                        faultCurrentKA /
+                        1000.0
+
+                FaultType.LINE_TO_LINE ->
+                    input.voltageV *
+                        faultCurrentKA /
+                        1000.0
+
+                FaultType.LINE_TO_NEUTRAL ->
+                    input.voltageV *
+                        faultCurrentKA /
+                        1000.0
+            }
 
         return ShortCircuitResult(
-
-            sourceShortCircuitKA =
-                sourceFaultKA,
-
-            transformerShortCircuitKA =
-                transformerFaultKA,
-
-            faultCurrentKA =
-                faultCurrentKA,
-
-            sourceImpedanceOhm =
-                sourceImpedance,
-
-            transformerImpedanceOhm =
-                transformerImpedance,
-
-            cableResistanceOhm =
-                cableResistance,
-
-            cableReactanceOhm =
-                cableReactance,
-
-            totalResistanceOhm =
-                totalResistance,
-
-            totalReactanceOhm =
-                totalReactance,
-
-            totalImpedanceOhm =
-                totalImpedance,
-
-            faultType =
-                input.faultType,
-
-            notes = listOf(
-
-                "Fault type = ${input.faultType.name}",
-
-                "Source fault level = %.2f kA"
-                    .format(sourceFaultKA),
-
-                "Transformer fault contribution = %.2f kA"
-                    .format(transformerFaultKA),
-
-                "Source impedance = %.6f Ω"
-                    .format(sourceImpedance),
-
-                "Transformer impedance = %.6f Ω"
-                    .format(transformerImpedance),
-
-                "Cable resistance = %.6f Ω"
-                    .format(cableResistance),
-
-                "Cable reactance = %.6f Ω"
-                    .format(cableReactance),
-
-                "Total impedance = %.6f Ω"
-                    .format(totalImpedance),
-
-                "Calculated fault current = %.3f kA"
-                    .format(faultCurrentKA)
-            )
+            sourceImpedanceOhm = sourceZ,
+            transformerImpedanceOhm = transformerZ,
+            cableResistanceOhm = cableR,
+            cableReactanceOhm = cableX,
+            totalResistanceOhm = totalR,
+            totalReactanceOhm = totalX,
+            totalImpedanceOhm = totalZ,
+            faultCurrentKA = faultCurrentKA,
+            faultMva = faultMva,
+            peakFaultCurrentKA = peakFaultCurrentKA,
+            thermalI2tKa2s = thermalI2tKa2s,
+            kappa = kappa,
+            xOverR = xOverR,
+            rOverX = rOverX
         )
     }
 
-    private fun sourceMvaToFaultCurrentKA(
-        mva: Double,
-        voltageV: Double
-    ): Double {
-
-        return mva *
-            1000.0 /
-            (
-                sqrt(3.0) *
-                    voltageV
+    fun fromSourceFaultLevel(
+        voltageV: Double,
+        sourceShortCircuitMva: Double,
+        cableLengthM: Double = 0.0,
+        cableResistanceOhmPerKm: Double = 0.0,
+        cableReactanceOhmPerKm: Double = 0.0,
+        parallelRuns: Int = 1,
+        voltageFactor: Double = 1.0
+    ): ShortCircuitResult {
+        return calculate(
+            ShortCircuitInput(
+                voltageV = voltageV,
+                sourceShortCircuitMva = sourceShortCircuitMva,
+                cableLengthM = cableLengthM,
+                cableResistanceOhmPerKm = cableResistanceOhmPerKm,
+                cableReactanceOhmPerKm = cableReactanceOhmPerKm,
+                parallelRuns = parallelRuns,
+                voltageFactor = voltageFactor
             )
-    }
-
-    private fun transformerFaultCurrentKA(
-        transformerKVA: Double,
-        voltageV: Double,
-        percentZ: Double
-    ): Double {
-
-        val ratedCurrentA =
-            transformerKVA *
-                1000.0 /
-                (
-                    sqrt(3.0) *
-                        voltageV
-                )
-
-        return ratedCurrentA /
-            (percentZ / 100.0) /
-            1000.0
-    }
-
-    private fun transformerImpedance(
-        voltageV: Double,
-        transformerKVA: Double,
-        percentZ: Double
-    ): Double {
-
-        val ratedCurrent =
-            transformerKVA *
-                1000.0 /
-                (
-                    sqrt(3.0) *
-                        voltageV
-                )
-
-        val ratedImpedance =
-            voltageV /
-                (
-                    sqrt(3.0) *
-                        ratedCurrent
-                )
-
-        return ratedImpedance *
-            percentZ /
-            100.0
-    }
-
-    private fun faultVoltage(
-        voltageV: Double,
-        faultType: FaultType
-    ): Double {
-
-        return when (faultType) {
-
-            FaultType.THREE_PHASE ->
-                voltageV /
-                    sqrt(3.0)
-
-            FaultType.LINE_TO_LINE ->
-                voltageV
-
-            FaultType.LINE_TO_NEUTRAL ->
-                voltageV /
-                    sqrt(3.0)
-        }
-    }
-
-    private fun validate(
-        input: ShortCircuitInput
-    ) {
-
-        require(input.voltageV > EPSILON) {
-            "System voltage must be greater than zero."
-        }
-
-        require(input.systemFrequencyHz > EPSILON) {
-            "System frequency must be greater than zero."
-        }
-
-        require(
-            input.sourceShortCircuitKA >= 0.0
-        ) {
-            "Source short-circuit current cannot be negative."
-        }
-
-        require(
-            input.sourceShortCircuitMVA >= 0.0
-        ) {
-            "Source short-circuit MVA cannot be negative."
-        }
-
-        require(
-            input.transformerKVA >= 0.0
-        ) {
-            "Transformer rating cannot be negative."
-        }
-
-        require(
-            input.transformerPercentZ >= 0.0
-        ) {
-            "Transformer impedance cannot be negative."
-        }
-
-        require(
-            input.cableLengthM >= 0.0
-        ) {
-            "Cable length cannot be negative."
-        }
-
-        require(
-            input.cableResistanceOhmPerKm >= 0.0
-        ) {
-            "Cable resistance cannot be negative."
-        }
-
-        require(
-            input.cableReactanceOhmPerKm >= 0.0
-        ) {
-            "Cable reactance cannot be negative."
-        }
-
-        require(
-            input.parallelRuns >= 1
-        ) {
-            "Parallel cable runs must be at least one."
-        }
-
-        require(
-            input.sourceShortCircuitKA > EPSILON ||
-                input.sourceShortCircuitMVA > EPSILON ||
-                (
-                    input.transformerKVA > EPSILON &&
-                        input.transformerPercentZ > EPSILON
-                    )
-        ) {
-            throw IllegalArgumentException(
-                "A valid upstream source or transformer short-circuit source is required."
-            )
-        }
+        )
     }
 }
