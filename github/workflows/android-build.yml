@@ -1,13 +1,15 @@
-name: ElectricalCalculationsPro Build
+name: ProfessionalEngineeringCore Build
 
 on:
   push:
     branches:
       - main
+      - master
 
   pull_request:
     branches:
       - main
+      - master
 
   workflow_dispatch:
 
@@ -15,20 +17,15 @@ permissions:
   contents: read
 
 jobs:
-
   build:
-
-    name: Build Android APK
-
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v5
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
@@ -41,33 +38,22 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK
+      - name: Install Android SDK packages
         run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
 
-      - name: Build Debug APK
+      - name: Build Core
         run: |
-          gradle :app:assembleDebug \
-            --no-daemon \
-            --stacktrace
+          gradle :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Verify APK
+      - name: Verify AAR
         run: |
-          test -f app/build/outputs/apk/debug/app-debug.apk
+          test -f app/build/outputs/aar/app-debug.aar
 
-      - name: Copy APK
-        run: |
-          cp \
-            app/build/outputs/apk/debug/app-debug.apk \
-            app/build/outputs/apk/debug/ElectricalCalculationsPro.apk
-
-      - name: Upload APK
+      - name: Upload Core AAR
         uses: actions/upload-artifact@v4
         with:
-          name: ElectricalCalculationsPro
-          path: app/build/outputs/apk/debug/ElectricalCalculationsPro.apk
-          if-no-files-found: error
+          name: ProfessionalEngineeringCore
+          path: app/build/outputs/aar/app-debug.aar
