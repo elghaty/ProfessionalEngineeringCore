@@ -1,92 +1,103 @@
 package com.electricalengineeringpro.app.core.sld
 
-import com.electricalengineeringpro.app.core.model.*
+import com.electricalengineeringpro.app.core.model.NetworkElement
+import com.electricalengineeringpro.app.core.model.NetworkElementType
 
 class SldGenerator {
 
     fun generate(
-        source: SupplySource,
-        panels: List<Panel>,
-        feeders: List<Feeder>
+        source: NetworkElement,
+        panels: List<NetworkElement>,
+        feeders: List<NetworkElement>
     ): SingleLineDiagram {
 
         val nodes = mutableListOf<SldNode>()
         val connections = mutableListOf<SldConnection>()
 
-        val sourceId = "SOURCE"
+        val sourceType =
+            when (source.type) {
+                NetworkElementType.SOURCE ->
+                    SldSymbolType.UTILITY
+
+                NetworkElementType.TRANSFORMER ->
+                    SldSymbolType.TRANSFORMER
+
+                NetworkElementType.GENERATOR ->
+                    SldSymbolType.GENERATOR
+
+                else ->
+                    SldSymbolType.UTILITY
+            }
 
         nodes += SldNode(
-            id = sourceId,
-            label = source.name,
-            type = when (source) {
-                SupplySource.UTILITY -> SldSymbolType.UTILITY
-                SupplySource.TRANSFORMER -> SldSymbolType.TRANSFORMER
-                SupplySource.GENERATOR -> SldSymbolType.GENERATOR
-                SupplySource.TRANSFORMER_GENERATOR -> SldSymbolType.TRANSFORMER
-            },
-            x = 500f,
-            y = 60f
+            id = source.id,
+            name = source.name,
+            type = sourceType,
+            x = 0f,
+            y = 0f
         )
 
-        panels.forEachIndexed { index, panel ->
+        var previousId = source.id
+        var index = 1
 
-            val panelY = 180f + index * 160f
+        panels.forEach { panel ->
+
+            val type =
+                when (panel.type) {
+                    NetworkElementType.MCC ->
+                        SldSymbolType.MCC
+
+                    NetworkElementType.PANEL ->
+                        if (index == 1)
+                            SldSymbolType.MAIN_SWITCHBOARD
+                        else
+                            SldSymbolType.PANEL
+
+                    NetworkElementType.TRANSFORMER ->
+                        SldSymbolType.TRANSFORMER
+
+                    NetworkElementType.GENERATOR ->
+                        SldSymbolType.GENERATOR
+
+                    else ->
+                        SldSymbolType.PANEL
+                }
 
             nodes += SldNode(
                 id = panel.id,
-                label = panel.name,
-                type = when (panel.type) {
-                    NetworkElementType.MDB -> SldSymbolType.MDB
-                    NetworkElementType.DB -> SldSymbolType.DB
-                    NetworkElementType.MCC -> SldSymbolType.MCC
-                    else -> SldSymbolType.MDB
-                },
-                x = 500f,
-                y = panelY,
-                parentId = sourceId,
-                electricalData = mapOf(
-                    "Voltage" to "${panel.voltage} V",
-                    "Breaker" to "${panel.incomingBreakerA} A"
-                )
+                name = panel.name,
+                type = type,
+                x = 0f,
+                y = index * 150f
             )
 
-            if (index == 0) {
-                connections += SldConnection(
-                    fromId = sourceId,
-                    toId = panel.id
-                )
-            }
+            connections += SldConnection(
+                fromId = previousId,
+                toId = panel.id,
+                label = ""
+            )
+
+            previousId = panel.id
+            index++
         }
 
-        feeders.forEachIndexed { index, feeder ->
-
-            val destination = feeder.destinationPanelId ?: return@forEachIndexed
+        feeders.forEach { feeder ->
 
             nodes += SldNode(
                 id = feeder.id,
-                label = feeder.name,
-                type = SldSymbolType.FEEDER,
-                x = 180f + index * 140f,
-                y = 420f,
-                parentId = feeder.sourcePanelId,
-                electricalData = mapOf(
-                    "Current" to "${"%.1f".format(feeder.designCurrentA)} A",
-                    "Cable" to "${feeder.cableSizeMm2} mm²",
-                    "Breaker" to "${feeder.breakerRatingA} A",
-                    "Voltage Drop" to "${"%.2f".format(feeder.voltageDropPercent)} %",
-                    "Isc" to "${"%.2f".format(feeder.shortCircuitKA)} kA"
-                )
+                name = feeder.name,
+                type = SldSymbolType.LOAD,
+                x = 0f,
+                y = index * 150f
             )
 
             connections += SldConnection(
-                fromId = feeder.sourcePanelId,
+                fromId = previousId,
                 toId = feeder.id
             )
 
-            connections += SldConnection(
-                fromId = feeder.id,
-                toId = destination
-            )
+            previousId = feeder.id
+            index++
         }
 
         return SingleLineDiagram(
