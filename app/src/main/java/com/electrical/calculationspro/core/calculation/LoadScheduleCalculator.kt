@@ -1,15 +1,14 @@
 package com.electrical.calculationspro.core.calculation
 
 import com.electrical.calculationspro.core.model.ElectricalLoad
-import com.electrical.calculationspro.core.model.LoadResult
 
 data class LoadScheduleResult(
     val connectedLoadKw: Double,
     val demandLoadKw: Double,
     val designLoadKw: Double,
+    val apparentPowerKva: Double,
     val totalCurrentA: Double,
-    val totalKva: Double,
-    val loadResults: List<LoadResult>
+    val individualResults: List<LoadResult>
 )
 
 class LoadScheduleCalculator(
@@ -22,22 +21,25 @@ class LoadScheduleCalculator(
     ): LoadScheduleResult {
 
         val results =
-            loads.map {
-                loadCalculator.calculate(it)
-            }
+            loadCalculator.calculateAll(loads)
 
         return LoadScheduleResult(
             connectedLoadKw =
                 results.sumOf { it.connectedKw },
+
             demandLoadKw =
                 results.sumOf { it.demandKw },
+
             designLoadKw =
                 results.sumOf { it.designKw },
+
+            apparentPowerKva =
+                results.sumOf { it.apparentPowerKva },
+
             totalCurrentA =
                 results.sumOf { it.currentA },
-            totalKva =
-                results.sumOf { it.apparentPowerKva },
-            loadResults = results
+
+            individualResults = results
         )
     }
 }
