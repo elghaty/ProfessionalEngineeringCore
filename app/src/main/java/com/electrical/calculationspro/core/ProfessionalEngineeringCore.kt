@@ -4,15 +4,20 @@ import com.electrical.calculationspro.core.calculators.DiversityCalculator
 import com.electrical.calculationspro.core.calculators.PanelCalculator
 import com.electrical.calculationspro.core.calculators.ShortCircuitCalculator
 import com.electrical.calculationspro.core.calculators.SldGenerator
+import com.electrical.calculationspro.core.calculators.SldShortCircuitCalculator
 
 /**
  * PROFESSIONAL ENGINEERING CORE
  *
- * The application has one logical engineering core.
+ * Single logical engineering calculation core.
  *
- * All engineering calculators are exposed from this boundary.
- *
- * UI -> Facade -> Core -> Calculator
+ * UI
+ *   ↓
+ * ProfessionalEngineeringFacade
+ *   ↓
+ * ProfessionalEngineeringCore
+ *   ↓
+ * Engineering Calculators
  */
 class ProfessionalEngineeringCore {
 
@@ -27,4 +32,7 @@ class ProfessionalEngineeringCore {
 
     val sld =
         SldGenerator()
+
+    val sldShortCircuit =
+        SldShortCircuitCalculator()
 }
