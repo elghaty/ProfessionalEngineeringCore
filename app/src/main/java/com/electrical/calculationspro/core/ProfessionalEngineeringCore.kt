@@ -13,10 +13,11 @@ import com.electrical.calculationspro.core.calculation.LoadScheduleCalculator
 import com.electrical.calculationspro.core.calculation.MdbCalculator
 import com.electrical.calculationspro.core.calculation.MotorCalculator
 import com.electrical.calculationspro.core.calculation.PanelCalculator
-import com.electrical.calculationspro.core.calculation.PumpCalculator
 import com.electrical.calculationspro.core.calculation.PowerCalculator
 import com.electrical.calculationspro.core.calculation.ProtectionCalculator
+import com.electrical.calculationspro.core.calculation.PumpCalculator
 import com.electrical.calculationspro.core.calculation.ShortCircuitCalculator
+import com.electrical.calculationspro.core.calculation.SldGenerator
 import com.electrical.calculationspro.core.calculation.SldShortCircuitCalculator
 import com.electrical.calculationspro.core.calculation.TransformerCalculator
 import com.electrical.calculationspro.core.calculation.TransformerSizingCalculator
@@ -27,7 +28,6 @@ import com.electrical.calculationspro.core.model.PowerResult
 import com.electrical.calculationspro.core.model.ProjectSummaryResult
 import com.electrical.calculationspro.core.model.SldNetwork
 import com.electrical.calculationspro.core.model.SldResult
-import com.electrical.calculationspro.core.sld.SldGenerator
 
 /**
  * SINGLE PUBLIC ENGINEERING FACADE.
@@ -86,13 +86,10 @@ class ProfessionalEngineeringCore private constructor() {
         CableCalculator(
             loadCalculator =
                 loadCalculator,
-
             voltageDropCalculator =
                 voltageDropCalculator,
-
             shortCircuitCalculator =
                 shortCircuitCalculator,
-
             breakerCalculator =
                 breakerCalculator
         )
@@ -131,10 +128,8 @@ class ProfessionalEngineeringCore private constructor() {
         ElectricalNetworkCalculator(
             loadScheduleCalculator =
                 loadScheduleCalculator,
-
             transformerSizingCalculator =
                 transformerSizingCalculator,
-
             breakerCalculator =
                 breakerCalculator
         )
@@ -145,14 +140,14 @@ class ProfessionalEngineeringCore private constructor() {
                 shortCircuitCalculator
         )
 
+    /**
+     * SLD generator is a pure network/model generator.
+     *
+     * Engineering calculations are performed through
+     * the calculators exposed by this Core.
+     */
     val sldGenerator =
-        SldGenerator(
-            loadCalculator =
-                loadCalculator,
-
-            shortCircuitCalculator =
-                sldShortCircuitCalculator
-        )
+        SldGenerator()
 
     fun calculatePower(
         powerKw: Double,
@@ -179,13 +174,10 @@ class ProfessionalEngineeringCore private constructor() {
         return powerCalculator.fromKva(
             apparentPowerKva =
                 apparentPowerKva,
-
             voltageV =
                 voltageV,
-
             powerFactor =
                 powerFactor,
-
             phase =
                 phase
         )
@@ -202,13 +194,10 @@ class ProfessionalEngineeringCore private constructor() {
             .voltageFromPower(
                 powerKw =
                     powerKw,
-
                 currentA =
                     currentA,
-
                 powerFactor =
                     powerFactor,
-
                 phaseCount =
                     phaseCount
             )
@@ -223,7 +212,6 @@ class ProfessionalEngineeringCore private constructor() {
             .resistance(
                 voltageV =
                     voltageV,
-
                 currentA =
                     currentA
             )
@@ -238,7 +226,6 @@ class ProfessionalEngineeringCore private constructor() {
             .impedanceMagnitude(
                 voltageV =
                     voltageV,
-
                 currentA =
                     currentA
             )
@@ -253,7 +240,6 @@ class ProfessionalEngineeringCore private constructor() {
             .reactivePowerKvar(
                 activePowerKw =
                     activePowerKw,
-
                 apparentPowerKva =
                     apparentPowerKva
             )
@@ -268,7 +254,6 @@ class ProfessionalEngineeringCore private constructor() {
             .powerFactor(
                 activePowerKw =
                     activePowerKw,
-
                 apparentPowerKva =
                     apparentPowerKva
             )
@@ -299,13 +284,10 @@ class ProfessionalEngineeringCore private constructor() {
             designSummaryCalculator.calculate(
                 loads =
                     loads,
-
                 voltageV =
                     voltageV,
-
                 powerFactor =
                     powerFactor,
-
                 designMargin =
                     designMargin
             )
@@ -340,15 +322,139 @@ class ProfessionalEngineeringCore private constructor() {
         voltageFactor: Double = 1.05
     ): SldResult {
 
-        return sldGenerator.generate(
-            network =
-                network,
+        /*
+         * First generate the SLD network model.
+         *
+         * The SLD generator is responsible only for
+         * topology/model generation.
+         *
+         * Short-circuit engineering is delegated to
+         * SldShortCircuitCalculator.
+         */
 
-            sourceFaultMva =
-                sourceFaultMva,
+        val generatedNetwork =
+            sldGenerator.build(
+                elements =
+                    network.elements,
+                connections =
+                    network.connections
+            )
 
-            voltageFactor =
-                voltageFactor
+        val shortCircuit =
+            sldShortCircuitCalculator.calculate(
+                network =
+                    generatedNetwork,
+                sourceShortCircuitMva =
+                    sourceFaultMva,
+                voltageFactor =
+                    voltageFactor
+            )
+
+        val elementResults =
+            generatedNetwork.elements.map { element ->
+
+                val loadResult =
+                    if (element.powerKw > 0.0) {
+
+                        loadCalculator.calculate(
+                            ElectricalLoad(
+                                id =
+                                    element.id,
+
+                                name =
+                                    element.name,
+
+                                powerKw =
+                                    element.powerKw,
+
+                                quantity =
+                                    1,
+
+                                voltageV =
+                                    element.voltageV,
+
+                                phase =
+                                    element.phase,
+
+                                powerFactor =
+                                    element.powerFactor,
+
+                                efficiency =
+                                    element.efficiency,
+
+                                demandFactor =
+                                    element.demandFactor,
+
+                                diversityFactor =
+                                    element.diversityFactor
+                            )
+                        )
+
+                    } else {
+                        null
+                    }
+
+                SldElementResult(
+                    elementId =
+                        element.id,
+
+                    powerKw =
+                        loadResult?.designKw
+                            ?: element.powerKw,
+
+                    apparentPowerKva =
+                        loadResult?.apparentPowerKva
+                            ?: 0.0,
+
+                    currentA =
+                        loadResult?.currentA
+                            ?: 0.0,
+
+                    shortCircuitKA =
+                        shortCircuit.results[
+                            element.id
+                        ]?.faultCurrentKA
+                            ?: 0.0
+                )
+            }
+
+        val totalLoadKw =
+            elementResults
+                .sumOf { it.powerKw }
+
+        val totalDemandKw =
+            elementResults
+                .sumOf { it.powerKw }
+
+        val source =
+            generatedNetwork.elements.firstOrNull {
+                it.sourceType != null
+            }
+
+        val sourceCurrentA =
+            elementResults
+                .filter {
+                    it.elementId != source?.id
+                }
+                .sumOf {
+                    it.currentA
+                }
+
+        return SldResult(
+            elements =
+                elementResults,
+
+            totalLoadKw =
+                totalLoadKw,
+
+            totalDemandKw =
+                totalDemandKw,
+
+            sourceCurrentA =
+                sourceCurrentA,
+
+            sourceFaultCurrentKA =
+                shortCircuit.maximumFaultCurrentKA
         )
     }
 
