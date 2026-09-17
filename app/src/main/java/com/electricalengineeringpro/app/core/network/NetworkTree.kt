@@ -13,17 +13,45 @@ class NetworkTreeBuilder {
         elements: List<NetworkElement>
     ): List<NetworkTreeNode> {
 
-        val byParent =
-            elements.groupBy { it.parentId }
+        val byId =
+            elements.associateBy {
+                it.id
+            }
+
+        val childrenByParent =
+            elements
+                .filter {
+                    it.parentId != null &&
+                        byId.containsKey(it.parentId)
+                }
+                .groupBy {
+                    it.parentId
+                }
 
         fun createNode(
-            element: NetworkElement
+            element: NetworkElement,
+            visiting: Set<String>
         ): NetworkTreeNode {
 
+            if (element.id in visiting) {
+                return NetworkTreeNode(
+                    element = element,
+                    children = emptyList()
+                )
+            }
+
+            val nextVisiting =
+                visiting + element.id
+
             val children =
-                byParent[element.id]
+                childrenByParent[element.id]
                     .orEmpty()
-                    .map(::createNode)
+                    .map {
+                        createNode(
+                            element = it,
+                            visiting = nextVisiting
+                        )
+                    }
 
             return NetworkTreeNode(
                 element = element,
@@ -31,8 +59,16 @@ class NetworkTreeBuilder {
             )
         }
 
-        return byParent[null]
-            .orEmpty()
-            .map(::createNode)
+        return elements
+            .filter {
+                it.parentId == null ||
+                    !byId.containsKey(it.parentId)
+            }
+            .map {
+                createNode(
+                    element = it,
+                    visiting = emptySet()
+                )
+            }
     }
 }
