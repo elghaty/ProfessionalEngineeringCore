@@ -1,71 +1,69 @@
 package com.electrical.calculationspro.core.calculation
 
-data class DiversityLoad(
-    val connectedKw: Double,
-    val demandFactor: Double = 1.0
-)
+import com.electrical.calculationspro.core.model.ElectricalLoad
 
-data class DiversityResult(
-    val totalConnectedKw: Double,
-    val totalDemandKw: Double,
-    val effectiveDiversityFactor: Double,
-    val utilizationPercent: Double,
-    val notes: List<String>
-)
-
-class DiversityCalculator {
+class LoadScheduleCalculator(
+    private val loadCalculator: LoadCalculator =
+        LoadCalculator()
+) {
 
     fun calculate(
-        loads: List<DiversityLoad>,
-        additionalDiversityFactor: Double = 1.0
-    ): DiversityResult {
+        loads: List<ElectricalLoad>
+    ): LoadScheduleResult {
 
-        require(additionalDiversityFactor in 0.0..1.0)
-
-        loads.forEach {
-            require(it.connectedKw >= 0.0)
-            require(it.demandFactor in 0.0..1.0)
+        require(loads.isNotEmpty()) {
+            "Load schedule must contain at least one load."
         }
 
-        val connected =
-            loads.sumOf { it.connectedKw }
+        val results =
+            loads.map { loadCalculator.calculate(it) }
 
-        val demandBeforeDiversity =
-            loads.sumOf {
-                it.connectedKw * it.demandFactor
-            }
+        val connectedLoadKw =
+            results.sumOf { it.connectedKw }
 
-        val finalDemand =
-            demandBeforeDiversity *
-                additionalDiversityFactor
+        val demandLoadKw =
+            results.sumOf { it.demandKw }
 
-        val effective =
-            if (connected > 0.0) {
-                finalDemand / connected
+        val designLoadKw =
+            results.sumOf { it.designKw }
+
+        val apparentPowerKva =
+            results.sumOf { it.apparentPowerKva }
+
+        val effectiveDemandFactor =
+            if (connectedLoadKw > 0.0) {
+                demandLoadKw / connectedLoadKw
             } else {
                 0.0
             }
 
-        return DiversityResult(
-            totalConnectedKw = connected,
-            totalDemandKw = finalDemand,
-            effectiveDiversityFactor =
-                effective.coerceIn(0.0, 1.0),
-            utilizationPercent =
-                if (connected > 0.0) {
-                    finalDemand / connected * 100.0
-                } else {
-                    0.0
-                },
-            notes = listOf(
-                "Connected load = %.2f kW".format(connected),
-                "Demand before diversity = %.2f kW"
-                    .format(demandBeforeDiversity),
-                "Applied diversity factor = %.3f"
-                    .format(additionalDiversityFactor),
-                "Final demand load = %.2f kW"
-                    .format(finalDemand)
-            )
+        val effectiveDesignFactor =
+            if (connectedLoadKw > 0.0) {
+                designLoadKw / connectedLoadKw
+            } else {
+                0.0
+            }
+
+        return LoadScheduleResult(
+            connectedLoadKw = connectedLoadKw,
+            demandLoadKw = demandLoadKw,
+            designLoadKw = designLoadKw,
+            apparentPowerKva = apparentPowerKva,
+            effectiveDemandFactor =
+                effectiveDemandFactor.coerceIn(0.0, 1.0),
+            effectiveDesignFactor =
+                effectiveDesignFactor.coerceIn(0.0, 1.0),
+            loadResults = results
         )
     }
 }
+
+data class LoadScheduleResult(
+    val connectedLoadKw: Double,
+    val demandLoadKw: Double,
+    val designLoadKw: Double,
+    val apparentPowerKva: Double,
+    val effectiveDemandFactor: Double,
+    val effectiveDesignFactor: Double,
+    val loadResults: List<LoadResult>
+)
