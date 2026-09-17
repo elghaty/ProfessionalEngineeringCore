@@ -23,7 +23,13 @@ data class ShortCircuitInput(
     val phase: Phase = Phase.THREE,
     val faultType: FaultType = FaultType.THREE_PHASE,
 
-    val voltageFactor: Double = 1.0
+    val voltageFactor: Double = 1.0,
+
+    /**
+     * Clearing time used for thermal I²t.
+     * Seconds.
+     */
+    val clearingTimeS: Double = 1.0
 )
 
 class ShortCircuitCalculator {
@@ -80,15 +86,16 @@ class ShortCircuitCalculator {
                     totalX * totalX
             )
 
-        val voltageFactor =
-            input.voltageFactor
-
         val faultCurrentA =
             calculateFaultCurrent(
-                voltageV = input.voltageV,
-                totalImpedanceOhm = totalZ,
-                faultType = input.faultType,
-                voltageFactor = voltageFactor
+                voltageV =
+                    input.voltageV,
+                totalImpedanceOhm =
+                    totalZ,
+                faultType =
+                    input.faultType,
+                voltageFactor =
+                    input.voltageFactor
             )
 
         val faultCurrentKA =
@@ -120,35 +127,61 @@ class ShortCircuitCalculator {
 
         val faultMva =
             calculateFaultMva(
-                voltageV = input.voltageV,
-                currentKA = faultCurrentKA,
-                faultType = input.faultType
+                voltageV =
+                    input.voltageV,
+                currentKA =
+                    faultCurrentKA,
+                faultType =
+                    input.faultType
             )
 
+        val thermalI2tKa2s =
+            faultCurrentKA *
+                faultCurrentKA *
+                input.clearingTimeS
+
         return ShortCircuitResult(
-            sourceImpedanceOhm = sourceZ,
-            transformerImpedanceOhm = transformerZ,
+            sourceImpedanceOhm =
+                sourceZ,
 
-            cableResistanceOhm = cableR,
-            cableReactanceOhm = cableX,
+            transformerImpedanceOhm =
+                transformerZ,
 
-            totalResistanceOhm = totalR,
-            totalReactanceOhm = totalX,
-            totalImpedanceOhm = totalZ,
+            cableResistanceOhm =
+                cableR,
 
-            faultCurrentKA = faultCurrentKA,
-            faultMva = faultMva,
+            cableReactanceOhm =
+                cableX,
+
+            totalResistanceOhm =
+                totalR,
+
+            totalReactanceOhm =
+                totalX,
+
+            totalImpedanceOhm =
+                totalZ,
+
+            faultCurrentKA =
+                faultCurrentKA,
+
+            faultMva =
+                faultMva,
 
             peakFaultCurrentKA =
                 peakFaultCurrentKA,
 
             thermalI2tKa2s =
-                faultCurrentKA *
-                    faultCurrentKA,
+                thermalI2tKa2s,
 
-            kappa = kappa,
-            xOverR = xOverR,
-            rOverX = rOverX
+            kappa =
+                kappa,
+
+            xOverR =
+                xOverR,
+
+            rOverX =
+                rOverX
         )
     }
 
@@ -159,7 +192,8 @@ class ShortCircuitCalculator {
         cableResistanceOhmPerKm: Double = 0.0,
         cableReactanceOhmPerKm: Double = 0.0,
         parallelRuns: Int = 1,
-        voltageFactor: Double = 1.0
+        voltageFactor: Double = 1.0,
+        clearingTimeS: Double = 1.0
     ): ShortCircuitResult {
 
         return calculate(
@@ -183,7 +217,10 @@ class ShortCircuitCalculator {
                     parallelRuns,
 
                 voltageFactor =
-                    voltageFactor
+                    voltageFactor,
+
+                clearingTimeS =
+                    clearingTimeS
             )
         )
     }
@@ -191,27 +228,63 @@ class ShortCircuitCalculator {
     private fun validate(
         input: ShortCircuitInput
     ) {
-        require(input.voltageV > 0.0)
-        require(input.sourceShortCircuitMva >= 0.0)
-        require(input.sourceXOverR >= 0.0)
 
-        require(input.transformerKva >= 0.0)
-        require(input.transformerPercentZ >= 0.0)
-        require(input.transformerXOverR >= 0.0)
+        require(input.voltageV > 0.0) {
+            "Voltage must be greater than zero."
+        }
 
-        require(input.cableLengthM >= 0.0)
-        require(input.cableResistanceOhmPerKm >= 0.0)
-        require(input.cableReactanceOhmPerKm >= 0.0)
+        require(
+            input.sourceShortCircuitMva >= 0.0
+        )
 
-        require(input.parallelRuns > 0)
-        require(input.voltageFactor > 0.0)
+        require(
+            input.sourceXOverR >= 0.0
+        )
+
+        require(
+            input.transformerKva >= 0.0
+        )
+
+        require(
+            input.transformerPercentZ >= 0.0
+        )
+
+        require(
+            input.transformerXOverR >= 0.0
+        )
+
+        require(
+            input.cableLengthM >= 0.0
+        )
+
+        require(
+            input.cableResistanceOhmPerKm >= 0.0
+        )
+
+        require(
+            input.cableReactanceOhmPerKm >= 0.0
+        )
+
+        require(
+            input.parallelRuns > 0
+        )
+
+        require(
+            input.voltageFactor > 0.0
+        )
+
+        require(
+            input.clearingTimeS > 0.0
+        )
     }
 
     private fun calculateSourceImpedance(
         input: ShortCircuitInput
     ): Double {
 
-        if (input.sourceShortCircuitMva <= 0.0) {
+        if (
+            input.sourceShortCircuitMva <= 0.0
+        ) {
             return 0.0
         }
 
@@ -280,7 +353,9 @@ class ShortCircuitCalculator {
         voltageFactor: Double
     ): Double {
 
-        if (totalImpedanceOhm <= 0.0) {
+        if (
+            totalImpedanceOhm <= 0.0
+        ) {
             return 0.0
         }
 
