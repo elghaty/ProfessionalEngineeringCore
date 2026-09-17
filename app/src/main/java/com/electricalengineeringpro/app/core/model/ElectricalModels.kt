@@ -77,7 +77,16 @@ data class ElectricalLoad(
     val diversityFactor: Double = 1.0,
     val voltage: Double = 400.0,
     val phase: Phase = Phase.THREE,
-    val startingCurrentMultiplier: Double = 1.0
+    val startingCurrentMultiplier: Double = 1.0,
+
+    /*
+     * Network hierarchy.
+     *
+     * These fields are optional so existing callers remain compatible.
+     */
+    val panelName: String = "MDB",
+    val feederName: String = "",
+    val circuitName: String = ""
 )
 
 data class CableInput(
@@ -154,7 +163,8 @@ data class PumpInput(
     val pumpEfficiency: Double,
     val motorEfficiency: Double,
     val powerFactor: Double,
-    val voltage: Double
+    val voltage: Double,
+    val phase: Phase = Phase.THREE
 )
 
 data class PumpResult(
