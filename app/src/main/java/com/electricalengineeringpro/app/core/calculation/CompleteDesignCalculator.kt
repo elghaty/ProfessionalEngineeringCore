@@ -9,7 +9,14 @@ data class CompleteDesignInput(
     val loads: List<ElectricalLoad>,
     val voltageV: Double = 400.0,
     val powerFactor: Double = 0.90,
-    val diversityFactor: Double = 0.85,
+
+    /*
+     * Diversity factor:
+     * 1.0 means no diversity.
+     * Greater than 1.0 reduces coincident demand.
+     */
+    val diversityFactor: Double = 1.15,
+
     val shortCircuitKA: Double = 0.0,
     val phase: Phase = Phase.THREE
 )
@@ -46,8 +53,12 @@ class CompleteDesignCalculator(
             "Power factor must be between 0.01 and 1.0."
         }
 
-        require(input.diversityFactor > 0.0) {
-            "Diversity factor must be greater than zero."
+        require(input.diversityFactor >= 1.0) {
+            "Diversity factor must be greater than or equal to 1.0."
+        }
+
+        require(input.shortCircuitKA >= 0.0) {
+            "Short-circuit current cannot be negative."
         }
 
         val loadResults =
@@ -66,7 +77,7 @@ class CompleteDesignCalculator(
             }
 
         val designLoadKW =
-            demandLoadKW *
+            demandLoadKW /
                 input.diversityFactor
 
         val apparentPowerKVA =
@@ -110,30 +121,16 @@ class CompleteDesignCalculator(
             )
 
         return CompleteDesignResult(
-            connectedLoadKW =
-                connectedLoadKW,
-
-            demandLoadKW =
-                demandLoadKW,
-
-            designLoadKW =
-                designLoadKW,
-
-            apparentPowerKVA =
-                apparentPowerKVA,
-
-            mainCurrentA =
-                mainCurrentA,
-
-            transformerRequiredKVA =
-                apparentPowerKVA,
-
+            connectedLoadKW = connectedLoadKW,
+            demandLoadKW = demandLoadKW,
+            designLoadKW = designLoadKW,
+            apparentPowerKVA = apparentPowerKVA,
+            mainCurrentA = mainCurrentA,
+            transformerRequiredKVA = apparentPowerKVA,
             transformerRecommendedKVA =
                 transformer.recommendedRatingKVA,
-
             mainBreakerA =
                 breaker.recommendedRatingA,
-
             breakerBreakingCapacityKA =
                 breaker.recommendedBreakingCapacityKA
         )
