@@ -7,7 +7,7 @@ data class CompleteDesignInput(
     val loads: List<ElectricalLoad>,
     val voltageV: Double = 400.0,
     val powerFactor: Double = 0.90,
-    val diversityFactor: Double = 1.0,
+    val diversityFactor: Double = 0.85,
     val shortCircuitKA: Double = 0.0
 )
 
@@ -23,42 +23,56 @@ data class CompleteDesignResult(
 )
 
 class EngineeringDesignService(
-    private val core: ProfessionalEngineeringCore =
-        ProfessionalEngineeringCore.instance
+    private val core: ProfessionalEngineeringCore
 ) {
 
     fun calculate(
         input: CompleteDesignInput
     ): CompleteDesignResult {
 
-        require(input.voltageV > 0.0)
-        require(input.powerFactor in 0.01..1.0)
-        require(input.diversityFactor > 0.0)
-        require(input.shortCircuitKA >= 0.0)
+        require(input.voltageV > 0.0) {
+            "Voltage must be greater than zero."
+        }
 
-        val schedule =
-            core.loadSchedule.calculate(input.loads)
+        require(input.powerFactor in 0.01..1.0) {
+            "Power factor must be between 0.01 and 1.0."
+        }
 
-        val designLoad =
-            schedule.totalDemandKw /
-                    input.diversityFactor
+        require(input.diversityFactor > 0.0) {
+            "Diversity factor must be greater than zero."
+        }
 
-        val phase =
-            input.loads.firstOrNull()?.phase
-                ?: com.electricalengineeringpro.app.core.model.Phase.THREE
+        val loadResults =
+            input.loads.map {
+                core.loads.calculate(it)
+            }
 
-        val summary =
-            core.designSummary.calculate(
-                loads = input.loads,
-                voltage = input.voltageV,
-                powerFactor = input.powerFactor,
-                phase = phase
-            )
+        val connectedLoadKw =
+            loadResults.sumOf { it.connectedKw }
+
+        val demandLoadKw =
+            loadResults.sumOf { it.demandKw }
+
+        val designLoadKw =
+            demandLoadKw * input.diversityFactor
+
+        val apparentPowerKva =
+            if (input.powerFactor > 0.0) {
+                designLoadKw / input.powerFactor
+            } else {
+                0.0
+            }
+
+        val mainCurrentA =
+            designLoadKw * 1000.0 /
+                (kotlin.math.sqrt(3.0) *
+                    input.voltageV *
+                    input.powerFactor)
 
         val transformer =
             core.transformerSizing.calculate(
                 TransformerSizingInput(
-                    designLoadKW = designLoad,
+                    designLoadKW = designLoadKw,
                     powerFactor = input.powerFactor,
                     spareCapacityFactor = 1.15
                 )
@@ -67,34 +81,22 @@ class EngineeringDesignService(
         val breaker =
             core.breakerSelection.calculate(
                 BreakerSelectionInput(
-                    loadCurrentA = summary.totalCurrentA,
-                    shortCircuitKA = input.shortCircuitKA,
-                    utilizationFactor = 1.0
+                    loadCurrentA = mainCurrentA,
+                    shortCircuitKA = input.shortCircuitKA
                 )
             )
 
         return CompleteDesignResult(
-            connectedLoadKW =
-                schedule.totalConnectedKw,
-
-            demandLoadKW =
-                schedule.totalDemandKw,
-
-            designLoadKW =
-                designLoad,
-
-            mainCurrentA =
-                summary.totalCurrentA,
-
+            connectedLoadKW = connectedLoadKw,
+            demandLoadKW = demandLoadKw,
+            designLoadKW = designLoadKw,
+            mainCurrentA = mainCurrentA,
             transformerRequiredKVA =
-                transformer.requiredKVA,
-
+                apparentPowerKva,
             transformerRecommendedKVA =
                 transformer.recommendedRatingKVA,
-
             mainBreakerA =
                 breaker.recommendedRatingA,
-
             breakerBreakingCapacityKA =
                 breaker.recommendedBreakingCapacityKA
         )
