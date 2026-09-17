@@ -24,8 +24,7 @@ data class ElectricalNetworkResult(
 )
 
 class ElectricalNetworkCalculator(
-    private val loadCalculator: LoadCalculator =
-        LoadCalculator()
+    private val loadCalculator: LoadCalculator = LoadCalculator()
 ) {
 
     fun calculate(
@@ -43,78 +42,79 @@ class ElectricalNetworkCalculator(
             "Power factor must be between 0.01 and 1.0."
         }
 
-        val buses =
-            listOf(
-                NetworkBusResult(
-                    busName = "MAIN",
-                    connectedLoadKw =
-                        loads.sumOf {
-                            loadCalculator.calculate(it).connectedKw
-                        },
-                    demandLoadKw =
-                        loads.sumOf {
-                            loadCalculator.calculate(it).demandKw
-                        },
-                    designLoadKw =
-                        loads.sumOf {
-                            loadCalculator.calculate(it).designKw
-                        },
-                    apparentPowerKva =
-                        loads.sumOf {
-                            loadCalculator.calculate(it).apparentPowerKva
-                        },
-                    currentA = 0.0
-                )
-            ).map { bus ->
+        if (loads.isEmpty()) {
+            return ElectricalNetworkResult(
+                buses = emptyList(),
+                totalConnectedKw = 0.0,
+                totalDemandKw = 0.0,
+                totalDesignKw = 0.0,
+                totalApparentPowerKva = 0.0,
+                mainCurrentA = 0.0,
+                estimatedTransformerKva = 0.0
+            )
+        }
 
-                val current =
-                    when (phase) {
+        val loadResults = loads.map { load ->
+            loadCalculator.calculate(load)
+        }
 
-                        Phase.THREE ->
-                            bus.designLoadKw * 1000.0 /
-                                (
-                                    sqrt(3.0) *
-                                        voltageV *
-                                        powerFactor
-                                )
+        val connectedKw =
+            loadResults.sumOf { it.connectedKw }
 
-                        Phase.SINGLE ->
-                            bus.designLoadKw * 1000.0 /
-                                (
-                                    voltageV *
-                                        powerFactor
-                                )
-                    }
+        val demandKw =
+            loadResults.sumOf { it.demandKw }
 
-                bus.copy(
-                    currentA = current
-                )
+        val designKw =
+            loadResults.sumOf { it.designKw }
+
+        val apparentPowerKva =
+            loadResults.sumOf { it.apparentPowerKva }
+
+        val mainCurrentA =
+            when (phase) {
+
+                Phase.THREE ->
+                    designKw * 1000.0 /
+                        (
+                            sqrt(3.0) *
+                                voltageV *
+                                powerFactor
+                        )
+
+                Phase.SINGLE ->
+                    designKw * 1000.0 /
+                        (
+                            voltageV *
+                                powerFactor
+                        )
             }
 
-        val main =
-            buses.first()
+        val mainBus =
+            NetworkBusResult(
+                busName = "MAIN",
+                connectedLoadKw = connectedKw,
+                demandLoadKw = demandKw,
+                designLoadKw = designKw,
+                apparentPowerKva = apparentPowerKva,
+                currentA = mainCurrentA
+            )
 
-        val transformerKva =
-            if (main.apparentPowerKva > 0.0) {
-                main.apparentPowerKva * 1.15
-            } else {
-                0.0
-            }
+        /*
+         * This is only an estimated transformer requirement.
+         * Final transformer selection must pass through
+         * TransformerSizingCalculator.
+         */
+        val estimatedTransformerKva =
+            apparentPowerKva * 1.15
 
         return ElectricalNetworkResult(
-            buses = buses,
-            totalConnectedKw =
-                main.connectedLoadKw,
-            totalDemandKw =
-                main.demandLoadKw,
-            totalDesignKw =
-                main.designLoadKw,
-            totalApparentPowerKva =
-                main.apparentPowerKva,
-            mainCurrentA =
-                main.currentA,
-            estimatedTransformerKva =
-                transformerKva
+            buses = listOf(mainBus),
+            totalConnectedKw = connectedKw,
+            totalDemandKw = demandKw,
+            totalDesignKw = designKw,
+            totalApparentPowerKva = apparentPowerKva,
+            mainCurrentA = mainCurrentA,
+            estimatedTransformerKva = estimatedTransformerKva
         )
     }
 }
