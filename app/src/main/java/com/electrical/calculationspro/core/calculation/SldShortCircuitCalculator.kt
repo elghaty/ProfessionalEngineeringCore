@@ -24,8 +24,14 @@ class SldShortCircuitCalculator(
         voltageFactor: Double = 1.05
     ): SldShortCircuitResult {
 
-        require(network.elements.isNotEmpty())
-        require(sourceShortCircuitMva > 0.0)
+        require(network.elements.isNotEmpty()) {
+            "SLD network must contain elements."
+        }
+
+        require(sourceShortCircuitMva > 0.0) {
+            "Source short-circuit level must be greater than zero."
+        }
+
         require(voltageFactor > 0.0)
 
         val results =
@@ -69,11 +75,9 @@ class SldShortCircuitCalculator(
         return SldShortCircuitResult(
             results = results,
             maximumFaultCurrentKA =
-                maximum?.value?.faultCurrentKA
-                    ?: 0.0,
+                maximum?.value?.faultCurrentKA ?: 0.0,
             minimumFaultCurrentKA =
-                minimum?.value?.faultCurrentKA
-                    ?: 0.0,
+                minimum?.value?.faultCurrentKA ?: 0.0,
             maximumFaultLocationId =
                 maximum?.key,
             minimumFaultLocationId =
@@ -98,9 +102,11 @@ class SldShortCircuitCalculator(
                 elementId = element.id
             )
 
+        val orderedPath =
+            path.asReversed()
+
         val sourceElement =
-            path
-                .asSequence()
+            orderedPath
                 .mapNotNull { connection ->
                     network.elements.firstOrNull {
                         it.id == connection.fromId
@@ -115,8 +121,8 @@ class SldShortCircuitCalculator(
                 element.sourceShortCircuitMva > 0.0 ->
                     element.sourceShortCircuitMva
 
-                sourceElement != null &&
-                    sourceElement.sourceShortCircuitMva > 0.0 ->
+                sourceElement?.sourceShortCircuitMva
+                    ?: 0.0 > 0.0 ->
                     sourceElement.sourceShortCircuitMva
 
                 else ->
@@ -129,69 +135,46 @@ class SldShortCircuitCalculator(
                     element.sourceShortCircuitMva > 0.0 ->
                     element.sourceXOverR
 
-                sourceElement != null ->
+                sourceElement != null &&
+                    sourceElement.sourceXOverR > 0.0 ->
                     sourceElement.sourceXOverR
 
                 else ->
                     10.0
             }
 
-        val totalCableR =
-            path.sumOf { connection ->
+        /*
+         * Every upstream connection contributes its own
+         * physical impedance.
+         *
+         * No artificial 1000 m equivalent feeder is used.
+         */
+        var cableR = 0.0
+        var cableX = 0.0
 
-                val runs =
-                    connection.parallelRuns
-                        .coerceAtLeast(1)
+        orderedPath.forEach { connection ->
 
+            val runs =
+                connection.parallelRuns
+                    .coerceAtLeast(1)
+
+            cableR +=
                 connection.cableResistanceOhmPerKm *
                     connection.lengthM /
                     1000.0 /
                     runs
-            }
 
-        val totalCableX =
-            path.sumOf { connection ->
-
-                val runs =
-                    connection.parallelRuns
-                        .coerceAtLeast(1)
-
+            cableX +=
                 connection.cableReactanceOhmPerKm *
                     connection.lengthM /
                     1000.0 /
                     runs
-            }
+        }
 
         /*
-         * The complete upstream cable impedance is
-         * represented as one equivalent feeder.
-         *
-         * The local feeder is NOT added again.
+         * The target element transformer data are included
+         * when the element itself represents a transformer.
          */
-        val equivalentLengthM =
-            if (
-                totalCableR > 0.0 ||
-                totalCableX > 0.0
-            ) {
-                1000.0
-            } else {
-                0.0
-            }
-
-        val equivalentRPerKm =
-            if (equivalentLengthM > 0.0) {
-                totalCableR
-            } else {
-                0.0
-            }
-
-        val equivalentXPerKm =
-            if (equivalentLengthM > 0.0) {
-                totalCableX
-            } else {
-                0.0
-            }
-
         return ShortCircuitInput(
             voltageV =
                 element.voltageV,
@@ -209,16 +192,24 @@ class SldShortCircuitCalculator(
                 element.transformerPercentZ,
 
             transformerXOverR =
-                10.0,
+                if (element.transformerXOverR > 0.0) {
+                    element.transformerXOverR
+                } else {
+                    10.0
+                },
 
             cableLengthM =
-                equivalentLengthM,
+                if (cableR > 0.0 || cableX > 0.0) {
+                    1000.0
+                } else {
+                    0.0
+                },
 
             cableResistanceOhmPerKm =
-                equivalentRPerKm,
+                cableR,
 
             cableReactanceOhmPerKm =
-                equivalentXPerKm,
+                cableX,
 
             parallelRuns = 1,
 
@@ -247,9 +238,11 @@ class SldShortCircuitCalculator(
         while (visited.add(currentId)) {
 
             val connection =
-                network.connections.firstOrNull {
-                    it.toId == currentId
-                } ?: break
+                network.connections
+                    .firstOrNull {
+                        it.toId == currentId
+                    }
+                    ?: break
 
             result += connection
 
