@@ -18,21 +18,44 @@ class PowerCalculator {
         phase: Phase
     ): PowerResult {
 
-        require(powerKw >= 0.0)
-        require(voltage > 0.0)
-        require(powerFactor in 0.01..1.0)
+        require(powerKw >= 0.0) {
+            "Power must not be negative."
+        }
 
-        val current = if (phase == Phase.THREE) {
-            powerKw * 1000.0 /
-                    (sqrt(3.0) * voltage * powerFactor)
-        } else {
-            powerKw * 1000.0 /
-                    (voltage * powerFactor)
+        require(voltage > 0.0) {
+            "Voltage must be greater than zero."
+        }
+
+        require(powerFactor in 0.01..1.0) {
+            "Power factor must be between 0.01 and 1.0."
+        }
+
+        val currentA = when (phase) {
+
+            Phase.THREE ->
+                powerKw * 1000.0 /
+                    (
+                        sqrt(3.0) *
+                            voltage *
+                            powerFactor
+                        )
+
+            Phase.SINGLE ->
+                powerKw * 1000.0 /
+                    (
+                        voltage *
+                            powerFactor
+                        )
         }
 
         return PowerResult(
-            currentA = current,
-            apparentPowerKva = powerKw / powerFactor,
+            currentA = currentA,
+            apparentPowerKva =
+                if (powerFactor > 0.0) {
+                    powerKw / powerFactor
+                } else {
+                    0.0
+                },
             activePowerKw = powerKw
         )
     }
@@ -43,14 +66,24 @@ class PowerCalculator {
         powerFactor: Double,
         phase: Phase
     ): PowerResult {
-        require(kva >= 0.0)
-        require(voltage > 0.0)
-        require(powerFactor in 0.01..1.0)
 
-        val kw = kva * powerFactor
+        require(kva >= 0.0) {
+            "Apparent power must not be negative."
+        }
+
+        require(voltage > 0.0) {
+            "Voltage must be greater than zero."
+        }
+
+        require(powerFactor in 0.01..1.0) {
+            "Power factor must be between 0.01 and 1.0."
+        }
+
+        val powerKw =
+            kva * powerFactor
 
         return fromKw(
-            powerKw = kw,
+            powerKw = powerKw,
             voltage = voltage,
             powerFactor = powerFactor,
             phase = phase
