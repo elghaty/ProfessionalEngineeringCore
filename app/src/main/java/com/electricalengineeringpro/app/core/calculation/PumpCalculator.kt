@@ -1,5 +1,6 @@
 package com.electricalengineeringpro.app.core.calculation
 
+import com.electricalengineeringpro.app.core.model.Phase
 import com.electricalengineeringpro.app.core.model.PumpInput
 import com.electricalengineeringpro.app.core.model.PumpResult
 import kotlin.math.sqrt
@@ -12,7 +13,9 @@ class PumpCalculator {
         const val KW_CONVERSION = 1000.0
     }
 
-    fun calculate(input: PumpInput): PumpResult {
+    fun calculate(
+        input: PumpInput
+    ): PumpResult {
 
         require(input.flowM3s >= 0.0) {
             "Flow must not be negative."
@@ -58,12 +61,25 @@ class PumpCalculator {
             if (motorPowerKw == 0.0) {
                 0.0
             } else {
-                motorPowerKw * KW_CONVERSION /
-                    (
-                        sqrt(3.0) *
-                            input.voltage *
-                            input.powerFactor
-                        )
+                when (input.phase) {
+
+                    Phase.THREE ->
+                        motorPowerKw *
+                            KW_CONVERSION /
+                            (
+                                sqrt(3.0) *
+                                    input.voltage *
+                                    input.powerFactor
+                            )
+
+                    Phase.SINGLE ->
+                        motorPowerKw *
+                            KW_CONVERSION /
+                            (
+                                input.voltage *
+                                    input.powerFactor
+                            )
+                }
             }
 
         return PumpResult(
