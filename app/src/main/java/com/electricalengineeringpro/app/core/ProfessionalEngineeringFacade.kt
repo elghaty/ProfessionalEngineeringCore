@@ -25,6 +25,7 @@ import com.electricalengineeringpro.app.core.calculation.TransformerResult
 import com.electricalengineeringpro.app.core.calculation.TransformerSizingInput
 import com.electricalengineeringpro.app.core.calculation.TransformerSizingResult
 import com.electricalengineeringpro.app.core.model.ElectricalLoad
+import com.electricalengineeringpro.app.core.model.Phase
 import com.electricalengineeringpro.app.core.result.EngineeringResult
 
 class ProfessionalEngineeringFacade(
@@ -48,8 +49,7 @@ class ProfessionalEngineeringFacade(
         loads: List<ElectricalLoad>,
         voltage: Double = 400.0,
         powerFactor: Double = 0.90,
-        phase: com.electricalengineeringpro.app.core.model.Phase =
-            com.electricalengineeringpro.app.core.model.Phase.THREE
+        phase: Phase = Phase.THREE
     ) = execute {
         core.designSummary.calculate(
             loads = loads,
@@ -63,14 +63,14 @@ class ProfessionalEngineeringFacade(
         input: CableInput
     ): EngineeringResult<CableResult> =
         execute {
-            core.cables.calculate(input)
+            core.cable.calculate(input)
         }
 
     fun calculateBreaker(
         input: BreakerInput
     ): EngineeringResult<BreakerResult> =
         execute {
-            core.breakers.calculate(input)
+            core.breaker.calculate(input)
         }
 
     fun calculateBreakerSelection(
@@ -143,17 +143,35 @@ class ProfessionalEngineeringFacade(
             core.completeDesign.calculate(input)
         }
 
+    fun calculateNetwork(
+        loads: List<ElectricalLoad>,
+        voltage: Double = 400.0,
+        powerFactor: Double = 0.90,
+        phase: Phase = Phase.THREE
+    ) = execute {
+        core.network.calculate(
+            loads = loads,
+            voltageV = voltage,
+            powerFactor = powerFactor,
+            phase = phase
+        )
+    }
+
     private inline fun <T> execute(
         block: () -> T
     ): EngineeringResult<T> {
 
         return try {
             EngineeringResult.Success(block())
+
         } catch (e: IllegalArgumentException) {
+
             EngineeringResult.Error(
                 e.message ?: "Invalid engineering input."
             )
+
         } catch (e: Exception) {
+
             EngineeringResult.Error(
                 e.message ?: "Engineering calculation failed."
             )
