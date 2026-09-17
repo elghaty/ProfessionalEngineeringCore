@@ -2,6 +2,7 @@ package com.electricalengineeringpro.app.core.calculation
 
 import com.electricalengineeringpro.app.core.ProfessionalEngineeringCore
 import com.electricalengineeringpro.app.core.model.ElectricalLoad
+import kotlin.math.sqrt
 
 data class CompleteDesignInput(
     val loads: List<ElectricalLoad>,
@@ -42,32 +43,38 @@ class EngineeringDesignService(
             "Diversity factor must be greater than zero."
         }
 
+        require(input.loads.isNotEmpty()) {
+            "At least one electrical load is required."
+        }
+
         val loadResults =
             input.loads.map {
                 core.loads.calculate(it)
             }
 
         val connectedLoadKw =
-            loadResults.sumOf { it.connectedKw }
+            loadResults.sumOf {
+                it.connectedKw
+            }
 
         val demandLoadKw =
-            loadResults.sumOf { it.demandKw }
+            loadResults.sumOf {
+                it.demandKw
+            }
 
         val designLoadKw =
             demandLoadKw * input.diversityFactor
 
         val apparentPowerKva =
-            if (input.powerFactor > 0.0) {
-                designLoadKw / input.powerFactor
-            } else {
-                0.0
-            }
+            designLoadKw / input.powerFactor
 
         val mainCurrentA =
             designLoadKw * 1000.0 /
-                (kotlin.math.sqrt(3.0) *
-                    input.voltageV *
-                    input.powerFactor)
+                (
+                    sqrt(3.0) *
+                        input.voltageV *
+                        input.powerFactor
+                    )
 
         val transformer =
             core.transformerSizing.calculate(
@@ -91,8 +98,7 @@ class EngineeringDesignService(
             demandLoadKW = demandLoadKw,
             designLoadKW = designLoadKw,
             mainCurrentA = mainCurrentA,
-            transformerRequiredKVA =
-                apparentPowerKva,
+            transformerRequiredKVA = apparentPowerKva,
             transformerRecommendedKVA =
                 transformer.recommendedRatingKVA,
             mainBreakerA =
