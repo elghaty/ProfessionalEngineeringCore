@@ -24,7 +24,8 @@ data class ElectricalNetworkResult(
 )
 
 class ElectricalNetworkCalculator(
-    private val loadCalculator: LoadCalculator = LoadCalculator()
+    private val loadCalculator: LoadCalculator =
+        LoadCalculator()
 ) {
 
     fun calculate(
@@ -34,119 +35,86 @@ class ElectricalNetworkCalculator(
         phase: Phase = Phase.THREE
     ): ElectricalNetworkResult {
 
-        require(voltageV > 0.0)
-        require(powerFactor in 0.01..1.0)
+        require(voltageV > 0.0) {
+            "Voltage must be greater than zero."
+        }
 
-        val grouped =
-            loads.groupBy {
-                it.name.ifBlank { "MDB" }
-            }
+        require(powerFactor in 0.01..1.0) {
+            "Power factor must be between 0.01 and 1.0."
+        }
 
         val buses =
-            grouped.map { (panel, panelLoads) ->
-
-                val results =
-                    panelLoads.map {
-                        loadCalculator.calculate(it)
-                    }
-
-                val connected =
-                    results.sumOf {
-                        it.connectedKw
-                    }
-
-                val demand =
-                    results.sumOf {
-                        it.demandKw
-                    }
-
-                val design =
-                    results.sumOf {
-                        it.designKw
-                    }
-
-                val apparent =
-                    results.sumOf {
-                        it.apparentPowerKva
-                    }
+            listOf(
+                NetworkBusResult(
+                    busName = "MAIN",
+                    connectedLoadKw =
+                        loads.sumOf {
+                            loadCalculator.calculate(it).connectedKw
+                        },
+                    demandLoadKw =
+                        loads.sumOf {
+                            loadCalculator.calculate(it).demandKw
+                        },
+                    designLoadKw =
+                        loads.sumOf {
+                            loadCalculator.calculate(it).designKw
+                        },
+                    apparentPowerKva =
+                        loads.sumOf {
+                            loadCalculator.calculate(it).apparentPowerKva
+                        },
+                    currentA = 0.0
+                )
+            ).map { bus ->
 
                 val current =
                     when (phase) {
+
                         Phase.THREE ->
-                            design * 1000.0 /
-                                    (
-                                        sqrt(3.0) *
-                                                voltageV *
-                                                powerFactor
-                                        )
+                            bus.designLoadKw * 1000.0 /
+                                (
+                                    sqrt(3.0) *
+                                        voltageV *
+                                        powerFactor
+                                )
 
                         Phase.SINGLE ->
-                            design * 1000.0 /
-                                    (
-                                        voltageV *
-                                                powerFactor
-                                        )
+                            bus.designLoadKw * 1000.0 /
+                                (
+                                    voltageV *
+                                        powerFactor
+                                )
                     }
 
-                NetworkBusResult(
-                    busName = panel,
-                    connectedLoadKw = connected,
-                    demandLoadKw = demand,
-                    designLoadKw = design,
-                    apparentPowerKva = apparent,
+                bus.copy(
                     currentA = current
                 )
             }
 
-        val totalConnected =
-            buses.sumOf {
-                it.connectedLoadKw
-            }
-
-        val totalDemand =
-            buses.sumOf {
-                it.demandLoadKw
-            }
-
-        val totalDesign =
-            buses.sumOf {
-                it.designLoadKw
-            }
-
-        val totalKva =
-            buses.sumOf {
-                it.apparentPowerKva
-            }
-
-        val mainCurrent =
-            when (phase) {
-                Phase.THREE ->
-                    totalDesign * 1000.0 /
-                            (
-                                sqrt(3.0) *
-                                        voltageV *
-                                        powerFactor
-                                )
-
-                Phase.SINGLE ->
-                    totalDesign * 1000.0 /
-                            (
-                                voltageV *
-                                        powerFactor
-                                )
-            }
+        val main =
+            buses.first()
 
         val transformerKva =
-            totalKva * 1.20
+            if (main.apparentPowerKva > 0.0) {
+                main.apparentPowerKva * 1.15
+            } else {
+                0.0
+            }
 
         return ElectricalNetworkResult(
             buses = buses,
-            totalConnectedKw = totalConnected,
-            totalDemandKw = totalDemand,
-            totalDesignKw = totalDesign,
-            totalApparentPowerKva = totalKva,
-            mainCurrentA = mainCurrent,
-            estimatedTransformerKva = transformerKva
+            totalConnectedKw =
+                main.connectedLoadKw,
+            totalDemandKw =
+                main.demandLoadKw,
+            totalDesignKw =
+                main.designLoadKw,
+            totalApparentPowerKva =
+                main.apparentPowerKva,
+            mainCurrentA =
+                main.currentA,
+            estimatedTransformerKva =
+                transformerKva
         )
     }
 }
