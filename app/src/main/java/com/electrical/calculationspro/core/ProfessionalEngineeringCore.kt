@@ -1,5 +1,6 @@
 package com.electrical.calculationspro.core
 
+import com.electrical.calculationspro.core.calculation.BasicElectricalCalculator
 import com.electrical.calculationspro.core.calculation.BreakerCalculator
 import com.electrical.calculationspro.core.calculation.BreakerSelectionCalculator
 import com.electrical.calculationspro.core.calculation.CableCalculator
@@ -31,12 +32,16 @@ import com.electrical.calculationspro.core.sld.SldGenerator
 /**
  * SINGLE PUBLIC ENGINEERING FACADE.
  *
- * The application must use this class as the
- * only engineering calculation entry point.
+ * All application engineering calculations
+ * must enter through this class.
  *
- * UI must never implement engineering formulas.
+ * UI and ViewModels must not implement
+ * engineering formulas.
  */
 class ProfessionalEngineeringCore private constructor() {
+
+    val basicElectricalCalculator =
+        BasicElectricalCalculator()
 
     val powerCalculator =
         PowerCalculator()
@@ -154,10 +159,26 @@ class ProfessionalEngineeringCore private constructor() {
         voltageV: Double = 400.0,
         powerFactor: Double = 0.90,
         phase: Phase = Phase.THREE
-    ): PowerResult =
-        powerCalculator.fromKw(
-            powerKw =
-                powerKw,
+    ): PowerResult {
+
+        return powerCalculator.fromKw(
+            powerKw = powerKw,
+            voltageV = voltageV,
+            powerFactor = powerFactor,
+            phase = phase
+        )
+    }
+
+    fun calculatePowerFromKva(
+        apparentPowerKva: Double,
+        voltageV: Double = 400.0,
+        powerFactor: Double = 0.90,
+        phase: Phase = Phase.THREE
+    ): PowerResult {
+
+        return powerCalculator.fromKva(
+            apparentPowerKva =
+                apparentPowerKva,
 
             voltageV =
                 voltageV,
@@ -168,6 +189,90 @@ class ProfessionalEngineeringCore private constructor() {
             phase =
                 phase
         )
+    }
+
+    fun calculateVoltageFromPower(
+        powerKw: Double,
+        currentA: Double,
+        powerFactor: Double,
+        phaseCount: Int
+    ): Double {
+
+        return basicElectricalCalculator
+            .voltageFromPower(
+                powerKw =
+                    powerKw,
+
+                currentA =
+                    currentA,
+
+                powerFactor =
+                    powerFactor,
+
+                phaseCount =
+                    phaseCount
+            )
+    }
+
+    fun calculateResistance(
+        voltageV: Double,
+        currentA: Double
+    ): Double {
+
+        return basicElectricalCalculator
+            .resistance(
+                voltageV =
+                    voltageV,
+
+                currentA =
+                    currentA
+            )
+    }
+
+    fun calculateImpedance(
+        voltageV: Double,
+        currentA: Double
+    ): Double {
+
+        return basicElectricalCalculator
+            .impedanceMagnitude(
+                voltageV =
+                    voltageV,
+
+                currentA =
+                    currentA
+            )
+    }
+
+    fun calculateReactivePower(
+        activePowerKw: Double,
+        apparentPowerKva: Double
+    ): Double {
+
+        return basicElectricalCalculator
+            .reactivePowerKvar(
+                activePowerKw =
+                    activePowerKw,
+
+                apparentPowerKva =
+                    apparentPowerKva
+            )
+    }
+
+    fun calculatePowerFactor(
+        activePowerKw: Double,
+        apparentPowerKva: Double
+    ): Double {
+
+        return basicElectricalCalculator
+            .powerFactor(
+                activePowerKw =
+                    activePowerKw,
+
+                apparentPowerKva =
+                    apparentPowerKva
+            )
+    }
 
     fun calculateLoad(
         load: ElectricalLoad
@@ -233,8 +338,9 @@ class ProfessionalEngineeringCore private constructor() {
         network: SldNetwork,
         sourceFaultMva: Double = 1000.0,
         voltageFactor: Double = 1.05
-    ): SldResult =
-        sldGenerator.generate(
+    ): SldResult {
+
+        return sldGenerator.generate(
             network =
                 network,
 
@@ -244,6 +350,7 @@ class ProfessionalEngineeringCore private constructor() {
             voltageFactor =
                 voltageFactor
         )
+    }
 
     companion object {
 
