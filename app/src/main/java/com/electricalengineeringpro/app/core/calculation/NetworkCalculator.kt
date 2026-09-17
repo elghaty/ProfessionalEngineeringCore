@@ -1,7 +1,6 @@
 package com.electricalengineeringpro.app.core.calculation
 
 import com.electricalengineeringpro.app.core.model.ElectricalLoad
-import com.electricalengineeringpro.app.core.model.Phase
 import com.electricalengineeringpro.app.core.model.ShortCircuitInput
 
 data class NetworkCalculationResult(
@@ -13,11 +12,9 @@ data class NetworkCalculationResult(
 )
 
 class NetworkCalculator(
-    private val loadCalculator: LoadCalculator = LoadCalculator(),
-    private val designSummaryCalculator: DesignSummaryCalculator =
-        DesignSummaryCalculator(),
-    private val shortCircuitCalculator: ShortCircuitCalculator =
-        ShortCircuitCalculator()
+    private val loadCalculator: LoadCalculator,
+    private val designSummaryCalculator: DesignSummaryCalculator,
+    private val shortCircuitCalculator: ShortCircuitCalculator
 ) {
 
     fun calculate(
@@ -28,38 +25,36 @@ class NetworkCalculator(
         transformerImpedancePercent: Double = 6.0
     ): NetworkCalculationResult {
 
-        require(voltageV > 0.0)
-        require(powerFactor in 0.01..1.0)
-        require(transformerKva >= 0.0)
-        require(transformerImpedancePercent > 0.0)
+        require(voltageV > 0.0) {
+            "System voltage must be greater than zero."
+        }
 
-        val loadResults =
-            loads.map {
-                loadCalculator.calculate(it)
-            }
+        require(powerFactor in 0.01..1.0) {
+            "Power factor must be between 0.01 and 1.0."
+        }
 
-        val totalConnected =
-            loadResults.sumOf {
-                it.connectedKw
-            }
+        require(transformerKva >= 0.0) {
+            "Transformer rating cannot be negative."
+        }
 
-        val totalDemand =
-            loadResults.sumOf {
-                it.demandKw
-            }
+        require(transformerImpedancePercent > 0.0) {
+            "Transformer impedance must be greater than zero."
+        }
 
-        val phase =
-            loads.firstOrNull()?.phase ?: Phase.THREE
+        val loadResults = loads.map {
+            loadCalculator.calculate(it)
+        }
+
+        val totalConnectedKw =
+            loadResults.sumOf { it.connectedKw }
+
+        val totalDemandKw =
+            loadResults.sumOf { it.demandKw }
 
         val summary =
-            designSummaryCalculator.calculate(
-                loads = loads,
-                voltage = voltageV,
-                powerFactor = powerFactor,
-                phase = phase
-            )
+            designSummaryCalculator.calculate(loads)
 
-        val shortCircuit =
+        val shortCircuitResult =
             if (transformerKva > 0.0) {
 
                 shortCircuitCalculator.calculate(
@@ -76,17 +71,14 @@ class NetworkCalculator(
             }
 
         return NetworkCalculationResult(
-            totalConnectedKw = totalConnected,
-            totalDemandKw = totalDemand,
-            estimatedMainCurrentA = summary.totalCurrentA,
+            totalConnectedKw = totalConnectedKw,
+            totalDemandKw = totalDemandKw,
+            estimatedMainCurrentA =
+                summary.totalCurrentA,
             estimatedTransformerKva =
-                if (transformerKva > 0.0) {
-                    transformerKva
-                } else {
-                    summary.recommendedTransformerKva
-                },
+                summary.recommendedTransformerKva,
             estimatedShortCircuitKA =
-                shortCircuit?.faultCurrentKA ?: 0.0
+                shortCircuitResult?.faultCurrentKA ?: 0.0
         )
     }
 }
