@@ -27,29 +27,30 @@ data class LoadScheduleResult(
 )
 
 class LoadScheduleCalculator(
-    private val loadCalculator: LoadCalculator
+    private val loadCalculator: LoadCalculator = LoadCalculator()
 ) {
 
     fun calculate(
         loads: List<ElectricalLoad>
     ): LoadScheduleResult {
 
-        val rows = loads.map { load ->
+        val rows =
+            loads.map { load ->
 
-            val result =
-                loadCalculator.calculate(load)
+                val result =
+                    loadCalculator.calculate(load)
 
-            LoadScheduleRow(
-                load = load,
-                connectedKw = result.connectedKw,
-                demandKw = result.demandKw,
-                designKw = result.designKw,
-                apparentPowerKva = result.apparentPowerKva,
-                reactivePowerKvar = result.reactivePowerKvar,
-                designCurrentA = result.currentA,
-                startingCurrentA = result.startingCurrentA
-            )
-        }
+                LoadScheduleRow(
+                    load = load,
+                    connectedKw = result.connectedKw,
+                    demandKw = result.demandKw,
+                    designKw = result.designKw,
+                    apparentPowerKva = result.apparentPowerKva,
+                    reactivePowerKvar = result.reactivePowerKvar,
+                    designCurrentA = result.currentA,
+                    startingCurrentA = result.startingCurrentA
+                )
+            }
 
         val totalConnectedKw =
             rows.sumOf { it.connectedKw }
@@ -70,14 +71,10 @@ class LoadScheduleCalculator(
             rows.sumOf { it.designCurrentA }
 
         val maximumDesignCurrentA =
-            rows.maxOfOrNull {
-                it.designCurrentA
-            } ?: 0.0
+            rows.maxOfOrNull { it.designCurrentA } ?: 0.0
 
         val maximumStartingCurrentA =
-            rows.maxOfOrNull {
-                it.startingCurrentA
-            } ?: 0.0
+            rows.maxOfOrNull { it.startingCurrentA } ?: 0.0
 
         val overallPowerFactor =
             if (totalApparentPowerKva > 0.0) {
