@@ -30,14 +30,25 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: "12266719"
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: true
+          packages: platform-tools
 
-      - name: Install Android SDK components
+      - name: Install required Android SDK components
         run: |
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Make Gradle executable
         run: chmod +x ./gradlew
+
+      - name: Clean
+        run: ./gradlew clean --stacktrace
+
+      - name: Run unit tests
+        run: ./gradlew :app:test --stacktrace
 
       - name: Build Release AAR
         run: ./gradlew :app:assembleRelease --stacktrace
