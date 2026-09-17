@@ -40,8 +40,8 @@ class LoadCalculator {
             "Demand factor must be between 0 and 1."
         }
 
-        require(load.diversityFactor > 0.0) {
-            "Diversity factor must be greater than zero."
+        require(load.diversityFactor in 1.0..10.0) {
+            "Diversity factor must be between 1.0 and 10.0."
         }
 
         require(load.voltage > 0.0) {
@@ -58,6 +58,17 @@ class LoadCalculator {
         val demandKw =
             connectedKw * load.demandFactor
 
+        /*
+         * Diversity factor is defined as:
+         *
+         * Diversity Factor =
+         * Sum of individual maximum demands /
+         * Maximum coincident demand
+         *
+         * Therefore coincident/design demand is obtained
+         * by dividing the sum of individual demands
+         * by the diversity factor.
+         */
         val designKw =
             demandKw / load.diversityFactor
 
@@ -66,35 +77,42 @@ class LoadCalculator {
 
         val reactivePowerKvar =
             apparentPowerKva *
-                    sqrt(
-                        (1.0 - load.powerFactor * load.powerFactor)
-                            .coerceAtLeast(0.0)
-                    )
+                sqrt(
+                    (
+                        1.0 -
+                            load.powerFactor *
+                            load.powerFactor
+                    ).coerceAtLeast(0.0)
+                )
 
         val currentA =
             when (load.phase) {
+
                 Phase.THREE ->
                     designKw * 1000.0 /
-                            (
-                                sqrt(3.0) *
-                                        load.voltage *
-                                        load.powerFactor
-                                )
+                        (
+                            sqrt(3.0) *
+                                load.voltage *
+                                load.powerFactor
+                        )
 
                 Phase.SINGLE ->
                     designKw * 1000.0 /
-                            (
-                                load.voltage *
-                                        load.powerFactor
-                                )
+                        (
+                            load.voltage *
+                                load.powerFactor
+                        )
             }
 
         val startingCurrentA =
-            currentA * load.startingCurrentMultiplier
+            currentA *
+                load.startingCurrentMultiplier
 
         val utilizationPercent =
             if (connectedKw > 0.0) {
-                demandKw / connectedKw * 100.0
+                demandKw /
+                    connectedKw *
+                    100.0
             } else {
                 0.0
             }
