@@ -19,12 +19,6 @@ import com.electricalengineeringpro.app.core.calculation.TransformerCalculator
 import com.electricalengineeringpro.app.core.calculation.TransformerSizingCalculator
 import com.electricalengineeringpro.app.core.calculation.VoltageDropCalculator
 
-/**
- * Single engineering calculation core.
- *
- * All engineering calculations are exposed through this class.
- * UI/application layers must not implement engineering formulas.
- */
 class ProfessionalEngineeringCore private constructor() {
 
     val power = PowerCalculator()
@@ -64,7 +58,6 @@ class ProfessionalEngineeringCore private constructor() {
     val completeDesign = EngineeringDesignService(this)
 
     companion object {
-
         val instance: ProfessionalEngineeringCore by lazy {
             ProfessionalEngineeringCore()
         }
