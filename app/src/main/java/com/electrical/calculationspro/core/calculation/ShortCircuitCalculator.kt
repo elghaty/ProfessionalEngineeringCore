@@ -8,6 +8,7 @@ import kotlin.math.sqrt
 
 data class ShortCircuitInput(
     val voltageV: Double,
+
     val sourceShortCircuitMva: Double = 0.0,
     val sourceXOverR: Double = 10.0,
 
@@ -25,11 +26,26 @@ data class ShortCircuitInput(
 
     val voltageFactor: Double = 1.0,
 
-    /**
-     * Clearing time used for thermal I²t.
-     * Seconds.
+    val clearingTimeS: Double = 1.0,
+
+    /*
+     * Sequence impedances in ohms.
+     *
+     * If not supplied, the calculator uses the positive
+     * sequence impedance as the fallback for positive/negative
+     * sequence and zero sequence where no earthing data exist.
      */
-    val clearingTimeS: Double = 1.0
+    val sourcePositiveSequenceOhm: Double? = null,
+    val sourceNegativeSequenceOhm: Double? = null,
+    val sourceZeroSequenceOhm: Double? = null,
+
+    val transformerPositiveSequenceOhm: Double? = null,
+    val transformerNegativeSequenceOhm: Double? = null,
+    val transformerZeroSequenceOhm: Double? = null,
+
+    val cablePositiveSequenceOhm: Double? = null,
+    val cableNegativeSequenceOhm: Double? = null,
+    val cableZeroSequenceOhm: Double? = null
 )
 
 class ShortCircuitCalculator {
@@ -70,55 +86,80 @@ class ShortCircuitCalculator {
                 xOverR = input.transformerXOverR
             )
 
-        val totalR =
+        val positiveR =
             sourceRx.first +
                 transformerRx.first +
                 cableR
 
-        val totalX =
+        val positiveX =
             sourceRx.second +
                 transformerRx.second +
                 cableX
 
-        val totalZ =
-            sqrt(
-                totalR * totalR +
-                    totalX * totalX
+        val positiveZ =
+            magnitude(
+                positiveR,
+                positiveX
             )
+
+        val negativeZ =
+            input.sourceNegativeSequenceOhm
+                ?: input.sourcePositiveSequenceOhm
+                ?: positiveZ
+
+        val zeroZ =
+            input.sourceZeroSequenceOhm
+                ?: input.transformerZeroSequenceOhm
+                ?: input.cableZeroSequenceOhm
+                ?: positiveZ
+
+        val positiveSequence =
+            input.sourcePositiveSequenceOhm
+                ?: input.transformerPositiveSequenceOhm
+                ?: input.cablePositiveSequenceOhm
+                ?: positiveZ
+
+        val negativeSequence =
+            input.sourceNegativeSequenceOhm
+                ?: input.transformerNegativeSequenceOhm
+                ?: input.cableNegativeSequenceOhm
+                ?: negativeZ
+
+        val zeroSequence =
+            zeroZ
 
         val faultCurrentA =
             calculateFaultCurrent(
-                voltageV =
-                    input.voltageV,
-                totalImpedanceOhm =
-                    totalZ,
-                faultType =
-                    input.faultType,
-                voltageFactor =
-                    input.voltageFactor
+                voltageV = input.voltageV,
+                positiveSequenceOhm =
+                    positiveSequence,
+                negativeSequenceOhm =
+                    negativeSequence,
+                zeroSequenceOhm =
+                    zeroSequence,
+                faultType = input.faultType,
+                voltageFactor = input.voltageFactor
             )
 
         val faultCurrentKA =
             faultCurrentA / 1000.0
 
         val xOverR =
-            if (totalR > 0.0) {
-                totalX / totalR
+            if (positiveR > 0.0) {
+                positiveX / positiveR
             } else {
                 Double.POSITIVE_INFINITY
             }
 
         val rOverX =
-            if (totalX > 0.0) {
-                totalR / totalX
+            if (positiveX > 0.0) {
+                positiveR / positiveX
             } else {
                 Double.POSITIVE_INFINITY
             }
 
         val kappa =
-            calculateKappa(
-                rOverX = rOverX
-            )
+            calculateKappa(rOverX)
 
         val peakFaultCurrentKA =
             faultCurrentKA *
@@ -127,12 +168,9 @@ class ShortCircuitCalculator {
 
         val faultMva =
             calculateFaultMva(
-                voltageV =
-                    input.voltageV,
-                currentKA =
-                    faultCurrentKA,
-                faultType =
-                    input.faultType
+                voltageV = input.voltageV,
+                currentKA = faultCurrentKA,
+                faultType = input.faultType
             )
 
         val thermalI2tKa2s =
@@ -141,47 +179,20 @@ class ShortCircuitCalculator {
                 input.clearingTimeS
 
         return ShortCircuitResult(
-            sourceImpedanceOhm =
-                sourceZ,
-
-            transformerImpedanceOhm =
-                transformerZ,
-
-            cableResistanceOhm =
-                cableR,
-
-            cableReactanceOhm =
-                cableX,
-
-            totalResistanceOhm =
-                totalR,
-
-            totalReactanceOhm =
-                totalX,
-
-            totalImpedanceOhm =
-                totalZ,
-
-            faultCurrentKA =
-                faultCurrentKA,
-
-            faultMva =
-                faultMva,
-
-            peakFaultCurrentKA =
-                peakFaultCurrentKA,
-
-            thermalI2tKa2s =
-                thermalI2tKa2s,
-
-            kappa =
-                kappa,
-
-            xOverR =
-                xOverR,
-
-            rOverX =
-                rOverX
+            sourceImpedanceOhm = sourceZ,
+            transformerImpedanceOhm = transformerZ,
+            cableResistanceOhm = cableR,
+            cableReactanceOhm = cableX,
+            totalResistanceOhm = positiveR,
+            totalReactanceOhm = positiveX,
+            totalImpedanceOhm = positiveZ,
+            faultCurrentKA = faultCurrentKA,
+            faultMva = faultMva,
+            peakFaultCurrentKA = peakFaultCurrentKA,
+            thermalI2tKa2s = thermalI2tKa2s,
+            kappa = kappa,
+            xOverR = xOverR,
+            rOverX = rOverX
         )
     }
 
@@ -198,29 +209,17 @@ class ShortCircuitCalculator {
 
         return calculate(
             ShortCircuitInput(
-                voltageV =
-                    voltageV,
-
+                voltageV = voltageV,
                 sourceShortCircuitMva =
                     sourceShortCircuitMva,
-
-                cableLengthM =
-                    cableLengthM,
-
+                cableLengthM = cableLengthM,
                 cableResistanceOhmPerKm =
                     cableResistanceOhmPerKm,
-
                 cableReactanceOhmPerKm =
                     cableReactanceOhmPerKm,
-
-                parallelRuns =
-                    parallelRuns,
-
-                voltageFactor =
-                    voltageFactor,
-
-                clearingTimeS =
-                    clearingTimeS
+                parallelRuns = parallelRuns,
+                voltageFactor = voltageFactor,
+                clearingTimeS = clearingTimeS
             )
         )
     }
@@ -229,62 +228,29 @@ class ShortCircuitCalculator {
         input: ShortCircuitInput
     ) {
 
-        require(input.voltageV > 0.0) {
-            "Voltage must be greater than zero."
-        }
+        require(input.voltageV > 0.0)
 
-        require(
-            input.sourceShortCircuitMva >= 0.0
-        )
+        require(input.sourceShortCircuitMva >= 0.0)
+        require(input.sourceXOverR >= 0.0)
 
-        require(
-            input.sourceXOverR >= 0.0
-        )
+        require(input.transformerKva >= 0.0)
+        require(input.transformerPercentZ >= 0.0)
+        require(input.transformerXOverR >= 0.0)
 
-        require(
-            input.transformerKva >= 0.0
-        )
+        require(input.cableLengthM >= 0.0)
+        require(input.cableResistanceOhmPerKm >= 0.0)
+        require(input.cableReactanceOhmPerKm >= 0.0)
 
-        require(
-            input.transformerPercentZ >= 0.0
-        )
-
-        require(
-            input.transformerXOverR >= 0.0
-        )
-
-        require(
-            input.cableLengthM >= 0.0
-        )
-
-        require(
-            input.cableResistanceOhmPerKm >= 0.0
-        )
-
-        require(
-            input.cableReactanceOhmPerKm >= 0.0
-        )
-
-        require(
-            input.parallelRuns > 0
-        )
-
-        require(
-            input.voltageFactor > 0.0
-        )
-
-        require(
-            input.clearingTimeS > 0.0
-        )
+        require(input.parallelRuns > 0)
+        require(input.voltageFactor > 0.0)
+        require(input.clearingTimeS > 0.0)
     }
 
     private fun calculateSourceImpedance(
         input: ShortCircuitInput
     ): Double {
 
-        if (
-            input.sourceShortCircuitMva <= 0.0
-        ) {
+        if (input.sourceShortCircuitMva <= 0.0) {
             return 0.0
         }
 
@@ -346,16 +312,47 @@ class ShortCircuitCalculator {
         return r to x
     }
 
+    private fun magnitude(
+        resistance: Double,
+        reactance: Double
+    ): Double {
+
+        return sqrt(
+            resistance * resistance +
+                reactance * reactance
+        )
+    }
+
     private fun calculateFaultCurrent(
         voltageV: Double,
-        totalImpedanceOhm: Double,
+        positiveSequenceOhm: Double,
+        negativeSequenceOhm: Double,
+        zeroSequenceOhm: Double,
         faultType: FaultType,
         voltageFactor: Double
     ): Double {
 
-        if (
-            totalImpedanceOhm <= 0.0
-        ) {
+        val phaseVoltage =
+            voltageV / sqrt(3.0)
+
+        val denominator =
+            when (faultType) {
+
+                FaultType.THREE_PHASE ->
+                    sqrt(3.0) *
+                        positiveSequenceOhm
+
+                FaultType.LINE_TO_LINE ->
+                    negativeSequenceOhm +
+                        positiveSequenceOhm
+
+                FaultType.LINE_TO_NEUTRAL ->
+                    positiveSequenceOhm +
+                        negativeSequenceOhm +
+                        zeroSequenceOhm
+            }
+
+        if (denominator <= 0.0) {
             return 0.0
         }
 
@@ -364,23 +361,18 @@ class ShortCircuitCalculator {
             FaultType.THREE_PHASE ->
                 voltageFactor *
                     voltageV /
-                    (
-                        sqrt(3.0) *
-                            totalImpedanceOhm
-                        )
+                    denominator
 
             FaultType.LINE_TO_LINE ->
                 voltageFactor *
                     voltageV /
-                    totalImpedanceOhm
+                    denominator
 
             FaultType.LINE_TO_NEUTRAL ->
                 voltageFactor *
-                    voltageV /
-                    (
-                        sqrt(3.0) *
-                            totalImpedanceOhm
-                        )
+                    3.0 *
+                    phaseVoltage /
+                    denominator
         }
     }
 
@@ -392,12 +384,14 @@ class ShortCircuitCalculator {
             return 1.02
         }
 
-        return 1.02 +
-            0.98 *
-            exp(
-                -3.0 *
-                    rOverX
-            )
+        return (
+            1.02 +
+                0.98 *
+                exp(
+                    -3.0 *
+                        rOverX
+                )
+            ).coerceIn(1.02, 2.0)
     }
 
     private fun calculateFaultMva(
