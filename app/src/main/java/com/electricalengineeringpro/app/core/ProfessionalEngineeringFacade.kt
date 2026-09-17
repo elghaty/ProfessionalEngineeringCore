@@ -163,15 +163,11 @@ class ProfessionalEngineeringFacade(
 
         return try {
             EngineeringResult.Success(block())
-
         } catch (e: IllegalArgumentException) {
-
             EngineeringResult.Error(
                 e.message ?: "Invalid engineering input."
             )
-
         } catch (e: Exception) {
-
             EngineeringResult.Error(
                 e.message ?: "Engineering calculation failed."
             )
