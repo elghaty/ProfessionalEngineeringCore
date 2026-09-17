@@ -1,6 +1,7 @@
 package com.electricalengineeringpro.app.core.calculation
 
 import kotlin.math.ceil
+import kotlin.math.sqrt
 
 data class MdbInput(
     val connectedLoadKw: Double,
@@ -20,26 +21,33 @@ data class MdbResult(
 
 class MdbCalculator {
 
-    fun calculate(input: MdbInput): MdbResult {
+    fun calculate(
+        input: MdbInput
+    ): MdbResult {
 
-        require(input.connectedLoadKw >= 0)
+        require(input.connectedLoadKw >= 0.0)
         require(input.demandFactor in 0.0..1.0)
-        require(input.powerFactor in 0.1..1.0)
+        require(input.powerFactor in 0.01..1.0)
+        require(input.voltageV > 0.0)
+        require(input.spareCapacity >= 0.0)
 
         val demandKw =
-            input.connectedLoadKw * input.demandFactor
+            input.connectedLoadKw *
+                    input.demandFactor
 
         val kva =
-            if (input.powerFactor > 0)
+            if (input.powerFactor > 0.0) {
                 demandKw / input.powerFactor
-            else 0.0
+            } else {
+                0.0
+            }
 
         val designKva =
             kva * (1.0 + input.spareCapacity)
 
         val current =
             designKva * 1000.0 /
-                (kotlin.math.sqrt(3.0) * input.voltageV)
+                    (sqrt(3.0) * input.voltageV)
 
         val incomer =
             standardRating(current)
@@ -56,15 +64,22 @@ class MdbCalculator {
         )
     }
 
-    private fun standardRating(value: Double): Double {
-        val ratings = listOf(
-            63.0, 80.0, 100.0, 125.0, 160.0, 200.0,
-            250.0, 315.0, 400.0, 500.0, 630.0, 800.0,
-            1000.0, 1250.0, 1600.0, 2000.0, 2500.0,
-            3200.0, 4000.0
-        )
+    private fun standardRating(
+        value: Double
+    ): Double {
 
-        return ratings.firstOrNull { it >= value }
-            ?: ceil(value / 500.0) * 500.0
+        val ratings =
+            listOf(
+                63.0, 80.0, 100.0, 125.0,
+                160.0, 200.0, 250.0, 315.0,
+                400.0, 500.0, 630.0, 800.0,
+                1000.0, 1250.0, 1600.0,
+                2000.0, 2500.0, 3200.0,
+                4000.0, 5000.0
+            )
+
+        return ratings.firstOrNull {
+            it >= value
+        } ?: ceil(value / 500.0) * 500.0
     }
 }
