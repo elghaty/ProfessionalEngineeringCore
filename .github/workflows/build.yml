@@ -1,3 +1,4 @@
+
 name: Build Professional Engineering Core
 
 on:
@@ -18,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -26,36 +28,28 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-          cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
-          cmdline-tools-version: "12266719"
-          accept-android-sdk-licenses: true
-          log-accepted-android-sdk-licenses: true
-          packages: platform-tools
+          gradle-version: "8.10.2"
 
-      - name: Install required Android SDK components
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-
-      - name: Make Gradle executable
-        run: chmod +x ./gradlew
+      - name: Verify Gradle
+        run: gradle --version
 
       - name: Clean
-        run: ./gradlew clean --stacktrace
+        run: gradle clean --stacktrace
 
-      - name: Run unit tests
-        run: ./gradlew :app:test --stacktrace
+      - name: Compile and test
+        run: gradle :app:test --stacktrace
 
       - name: Build Release AAR
-        run: ./gradlew :app:assembleRelease --stacktrace
+        run: gradle :app:assembleRelease --stacktrace
 
       - name: Verify AAR
         run: |
           test -f app/build/outputs/aar/app-release.aar
+          ls -lh app/build/outputs/aar/app-release.aar
 
       - name: Upload AAR
         uses: actions/upload-artifact@v4
