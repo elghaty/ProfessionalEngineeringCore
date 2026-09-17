@@ -75,25 +75,36 @@ class DesignSummaryCalculator(
         designMargin: Double = 1.15
     ): ProjectSummary {
 
-        require(voltageV > 0.0)
-        require(powerFactor in 0.01..1.0)
-        require(designMargin >= 1.0)
+        require(loads.isNotEmpty()) {
+            "Project must contain at least one load."
+        }
+
+        require(voltageV > 0.0) {
+            "Voltage must be greater than zero."
+        }
+
+        require(powerFactor in 0.01..1.0) {
+            "Power factor must be between 0.01 and 1.0."
+        }
+
+        require(designMargin >= 1.0) {
+            "Design margin must be >= 1.0."
+        }
 
         val schedule =
-            loadScheduleCalculator.calculate(
-                loads
-            )
+            loadScheduleCalculator.calculate(loads)
+
+        val designLoadKw =
+            schedule.designLoadKw * designMargin
 
         val designKva =
             if (powerFactor > 0.0) {
-                schedule.designLoadKw /
-                    powerFactor *
-                    designMargin
+                designLoadKw / powerFactor
             } else {
                 0.0
             }
 
-        val mainCurrentA =
+        val calculatedMainCurrentA =
             if (designKva > 0.0) {
                 designKva * 1000.0 /
                     (
@@ -104,14 +115,14 @@ class DesignSummaryCalculator(
                 0.0
             }
 
-        val transformer =
+        val recommendedTransformer =
             transformerRatingsKva.firstOrNull {
                 it >= designKva
             } ?: transformerRatingsKva.last()
 
-        val breaker =
+        val recommendedBreaker =
             breakerRatingsA.firstOrNull {
-                it >= mainCurrentA
+                it >= calculatedMainCurrentA
             } ?: breakerRatingsA.last()
 
         return ProjectSummary(
@@ -122,19 +133,19 @@ class DesignSummaryCalculator(
                 schedule.demandLoadKw,
 
             designLoadKw =
-                schedule.designLoadKw,
+                designLoadKw,
 
             apparentPowerKva =
                 designKva,
 
             mainCurrentA =
-                mainCurrentA,
+                calculatedMainCurrentA,
 
             recommendedTransformerKva =
-                transformer,
+                recommendedTransformer,
 
             recommendedMainBreakerA =
-                breaker
+                recommendedBreaker
         )
     }
 }
