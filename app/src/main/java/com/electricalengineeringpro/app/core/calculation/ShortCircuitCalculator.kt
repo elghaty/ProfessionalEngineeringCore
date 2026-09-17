@@ -7,44 +7,61 @@ import kotlin.math.sqrt
 class ShortCircuitCalculator {
 
     fun calculate(input: ShortCircuitInput): ShortCircuitResult {
-        require(input.sourceVoltage > 0)
-        require(input.transformerKva > 0)
-        require(input.transformerImpedancePercent > 0)
 
-        val transformerBaseCurrent =
+        require(input.sourceVoltage > 0.0) {
+            "Source voltage must be greater than zero."
+        }
+
+        require(input.transformerKva > 0.0) {
+            "Transformer rating must be greater than zero."
+        }
+
+        require(input.transformerImpedancePercent > 0.0) {
+            "Transformer impedance must be greater than zero."
+        }
+
+        val transformerBaseCurrentA =
             input.transformerKva * 1000.0 /
-                    (sqrt(3.0) * input.sourceVoltage)
+                (sqrt(3.0) * input.sourceVoltage)
 
-        val transformerFault =
-            transformerBaseCurrent /
-                    (input.transformerImpedancePercent / 100.0)
+        val transformerFaultCurrentA =
+            transformerBaseCurrentA /
+                (input.transformerImpedancePercent / 100.0)
 
         val transformerFaultMva =
             sqrt(3.0) *
-                    input.sourceVoltage *
-                    transformerFault /
-                    1_000_000.0
+                input.sourceVoltage *
+                transformerFaultCurrentA /
+                1_000_000.0
 
-        if (input.sourceShortCircuitMva == null) {
+        val sourceMva = input.sourceShortCircuitMva
+
+        if (sourceMva == null) {
             return ShortCircuitResult(
-                faultCurrentKA = transformerFault / 1000.0,
+                faultCurrentKA =
+                    transformerFaultCurrentA / 1000.0,
                 faultMva = transformerFaultMva
             )
         }
 
-        val sourceMva = input.sourceShortCircuitMva
-        require(sourceMva > 0)
+        require(sourceMva > 0.0) {
+            "Source short-circuit MVA must be greater than zero."
+        }
 
-        val combinedMva =
-            1.0 / (1.0 / sourceMva + 1.0 / transformerFaultMva)
+        val combinedFaultMva =
+            1.0 /
+                (
+                    1.0 / sourceMva +
+                        1.0 / transformerFaultMva
+                    )
 
-        val current =
-            combinedMva * 1_000_000.0 /
-                    (sqrt(3.0) * input.sourceVoltage)
+        val faultCurrentA =
+            combinedFaultMva * 1_000_000.0 /
+                (sqrt(3.0) * input.sourceVoltage)
 
         return ShortCircuitResult(
-            faultCurrentKA = current / 1000.0,
-            faultMva = combinedMva
+            faultCurrentKA = faultCurrentA / 1000.0,
+            faultMva = combinedFaultMva
         )
     }
 }
