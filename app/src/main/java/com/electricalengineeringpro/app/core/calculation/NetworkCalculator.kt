@@ -1,6 +1,7 @@
 package com.electricalengineeringpro.app.core.calculation
 
 import com.electricalengineeringpro.app.core.model.ElectricalLoad
+import com.electricalengineeringpro.app.core.model.Phase
 import com.electricalengineeringpro.app.core.model.ShortCircuitInput
 
 data class NetworkCalculationResult(
@@ -12,9 +13,11 @@ data class NetworkCalculationResult(
 )
 
 class NetworkCalculator(
-    private val loadCalculator: LoadCalculator,
-    private val designSummaryCalculator: DesignSummaryCalculator,
-    private val shortCircuitCalculator: ShortCircuitCalculator
+    private val loadCalculator: LoadCalculator = LoadCalculator(),
+    private val designSummaryCalculator: DesignSummaryCalculator =
+        DesignSummaryCalculator(),
+    private val shortCircuitCalculator: ShortCircuitCalculator =
+        ShortCircuitCalculator()
 ) {
 
     fun calculate(
@@ -22,7 +25,8 @@ class NetworkCalculator(
         voltageV: Double = 400.0,
         powerFactor: Double = 0.90,
         transformerKva: Double = 0.0,
-        transformerImpedancePercent: Double = 6.0
+        transformerImpedancePercent: Double = 6.0,
+        phase: Phase = Phase.THREE
     ): NetworkCalculationResult {
 
         require(voltageV > 0.0) {
@@ -41,18 +45,28 @@ class NetworkCalculator(
             "Transformer impedance must be greater than zero."
         }
 
-        val loadResults = loads.map {
-            loadCalculator.calculate(it)
-        }
+        val loadResults =
+            loads.map {
+                loadCalculator.calculate(it)
+            }
 
         val totalConnectedKw =
-            loadResults.sumOf { it.connectedKw }
+            loadResults.sumOf {
+                it.connectedKw
+            }
 
         val totalDemandKw =
-            loadResults.sumOf { it.demandKw }
+            loadResults.sumOf {
+                it.demandKw
+            }
 
         val summary =
-            designSummaryCalculator.calculate(loads)
+            designSummaryCalculator.calculate(
+                loads = loads,
+                voltage = voltageV,
+                powerFactor = powerFactor,
+                phase = phase
+            )
 
         val shortCircuitResult =
             if (transformerKva > 0.0) {
