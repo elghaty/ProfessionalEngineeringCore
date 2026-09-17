@@ -13,45 +13,52 @@ class NetworkDesignBuilder {
         mainPanelName: String = "MDB"
     ): ElectricalNetwork {
 
-        val elements = mutableListOf<NetworkElement>()
+        val elements =
+            mutableListOf<NetworkElement>()
 
         elements += NetworkElement(
             id = "SOURCE",
             name = sourceName,
-            type = NetworkElementType.SOURCE
+            type = NetworkElementType.SOURCE,
+            parentId = null
         )
 
         elements += NetworkElement(
             id = "MDB",
             name = mainPanelName,
-            type = NetworkElementType.PANEL
+            type = NetworkElementType.PANEL,
+            parentId = "SOURCE"
         )
-
-        loads
-            .groupBy {
-                it.panelName.ifBlank {
-                    "MDB"
-                }
-            }
-            .keys
-            .filter {
-                it != "MDB"
-            }
-            .forEachIndexed { index, panelName ->
-
-                elements += NetworkElement(
-                    id = "PANEL-${index + 1}",
-                    name = panelName,
-                    type = NetworkElementType.PANEL
-                )
-            }
 
         loads.forEachIndexed { index, load ->
 
+            val loadId =
+                "LOAD-${index + 1}"
+
             elements += NetworkElement(
-                id = "LOAD-${index + 1}",
+                id = loadId,
                 name = load.name,
-                type = NetworkElementType.LOAD
+                type =
+                    when (load.type) {
+                        com.electricalengineeringpro.app.core.model.LoadType.MOTOR ->
+                            NetworkElementType.MOTOR
+
+                        com.electricalengineeringpro.app.core.model.LoadType.PUMP,
+                        com.electricalengineeringpro.app.core.model.LoadType.FIRE_PUMP ->
+                            NetworkElementType.PUMP
+
+                        else ->
+                            NetworkElementType.LOAD
+                    },
+                parentId = "MDB",
+                ratingKva =
+                    if (load.powerFactor > 0.0) {
+                        load.powerKw *
+                            load.quantity /
+                            load.powerFactor
+                    } else {
+                        0.0
+                    }
             )
         }
 
