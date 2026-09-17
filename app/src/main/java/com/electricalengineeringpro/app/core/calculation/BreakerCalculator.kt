@@ -2,7 +2,6 @@ package com.electricalengineeringpro.app.core.calculation
 
 import com.electricalengineeringpro.app.core.model.BreakerInput
 import com.electricalengineeringpro.app.core.model.BreakerResult
-import com.electricalengineeringpro.app.core.model.BreakerType
 
 class BreakerCalculator {
 
@@ -42,11 +41,12 @@ class BreakerCalculator {
         6.0,
         10.0,
         15.0,
+        18.0,
         25.0,
         36.0,
         50.0,
         65.0,
-        85.0,
+        80.0,
         100.0
     )
 
@@ -65,36 +65,35 @@ class BreakerCalculator {
                 it >= input.designCurrentA
             } ?: standardRatings.last()
 
+        /*
+         * Zero means that the short-circuit level
+         * has not been provided.
+         *
+         * Never invent a default breaking capacity.
+         */
         val breakingCapacityKA =
-            selectBreakingCapacity(
-                input.shortCircuitCurrentKA
-            )
+            if (input.shortCircuitCurrentKA > 0.0) {
+                standardBreakingCapacitiesKA.firstOrNull {
+                    it >= input.shortCircuitCurrentKA
+                } ?: standardBreakingCapacitiesKA.last()
+            } else {
+                0.0
+            }
+
+        val utilizationPercent =
+            if (ratedCurrentA > 0.0) {
+                input.designCurrentA /
+                    ratedCurrentA *
+                    100.0
+            } else {
+                0.0
+            }
 
         return BreakerResult(
             ratedCurrentA = ratedCurrentA,
             breakingCapacityKA = breakingCapacityKA,
             type = input.preferredType,
-            utilizationPercent =
-                if (ratedCurrentA > 0.0) {
-                    input.designCurrentA /
-                        ratedCurrentA *
-                        100.0
-                } else {
-                    0.0
-                }
+            utilizationPercent = utilizationPercent
         )
-    }
-
-    private fun selectBreakingCapacity(
-        requiredKA: Double
-    ): Double {
-
-        if (requiredKA <= 0.0) {
-            return standardBreakingCapacitiesKA.first()
-        }
-
-        return standardBreakingCapacitiesKA.firstOrNull {
-            it >= requiredKA
-        } ?: standardBreakingCapacitiesKA.last()
     }
 }
