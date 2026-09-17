@@ -7,27 +7,39 @@ import kotlin.math.sqrt
 class TransformerCalculator {
 
     fun calculate(input: TransformerInput): TransformerResult {
-        require(input.ratingKva > 0)
-        require(input.primaryVoltage > 0)
-        require(input.secondaryVoltage > 0)
-        require(input.impedancePercent > 0)
+
+        require(input.ratingKva > 0.0) {
+            "Transformer rating must be greater than zero."
+        }
+
+        require(input.primaryVoltage > 0.0) {
+            "Primary voltage must be greater than zero."
+        }
+
+        require(input.secondaryVoltage > 0.0) {
+            "Secondary voltage must be greater than zero."
+        }
+
+        require(input.impedancePercent > 0.0) {
+            "Transformer impedance must be greater than zero."
+        }
 
         val primaryCurrent =
             input.ratingKva * 1000.0 /
-                    (sqrt(3.0) * input.primaryVoltage)
+                (sqrt(3.0) * input.primaryVoltage)
 
         val secondaryCurrent =
             input.ratingKva * 1000.0 /
-                    (sqrt(3.0) * input.secondaryVoltage)
+                (sqrt(3.0) * input.secondaryVoltage)
 
-        val baseCurrent = secondaryCurrent
-        val faultCurrent =
-            baseCurrent / (input.impedancePercent / 100.0)
+        val faultCurrentA =
+            secondaryCurrent /
+                (input.impedancePercent / 100.0)
 
         return TransformerResult(
             primaryCurrentA = primaryCurrent,
             secondaryCurrentA = secondaryCurrent,
-            shortCircuitCurrentKA = faultCurrent / 1000.0
+            shortCircuitCurrentKA = faultCurrentA / 1000.0
         )
     }
 }
