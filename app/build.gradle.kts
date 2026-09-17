@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.electrical.calculationspro.core"
+    namespace = "com.electricalengineeringpro.app.core"
 
     compileSdk = 35
 
@@ -13,11 +13,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility =
-            JavaVersion.VERSION_17
-
-        targetCompatibility =
-            JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
@@ -25,7 +22,6 @@ android {
     }
 
     buildFeatures {
-        compose = false
         buildConfig = false
     }
 
@@ -35,11 +31,7 @@ android {
 }
 
 dependencies {
-    implementation(
-        "androidx.core:core-ktx:1.15.0"
-    )
+    implementation("androidx.core:core-ktx:1.15.0")
 
-    testImplementation(
-        "junit:junit:4.13.2"
-    )
+    testImplementation("junit:junit:4.13.2")
 }
