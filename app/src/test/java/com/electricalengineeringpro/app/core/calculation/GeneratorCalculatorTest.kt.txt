@@ -14,7 +14,7 @@ class GeneratorCalculatorTest {
                 GeneratorInput(
                     ratingKva = 500.0,
                     voltageV = 400.0,
-                    phase = Phase.THREE_PHASE
+                    phase = Phase.THREE
                 )
             )
 
