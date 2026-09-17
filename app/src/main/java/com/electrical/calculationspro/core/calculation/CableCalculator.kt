@@ -53,10 +53,11 @@ class CableCalculator(
         sourceShortCircuitMva: Double = 1000.0
     ): CableResult {
 
-        require(maximumVoltageDropPercent >= 0.0)
+        require(maximumVoltageDropPercent > 0.0)
         require(ambientFactor > 0.0)
         require(groupingFactor > 0.0)
         require(sourceShortCircuitMva >= 0.0)
+        require(load.lengthM >= 0.0)
 
         val loadResult =
             loadCalculator.calculate(load)
@@ -64,7 +65,12 @@ class CableCalculator(
         val designCurrent =
             loadResult.currentA
 
+        var lastSection =
+            sectionsMm2.last()
+
         for (section in sectionsMm2) {
+
+            lastSection = section
 
             val baseAmpacity =
                 baseAmpacity(
@@ -78,10 +84,7 @@ class CableCalculator(
                     ambientFactor *
                     groupingFactor
 
-            if (
-                correctedAmpacity <
-                designCurrent
-            ) {
+            if (correctedAmpacity < designCurrent) {
                 continue
             }
 
@@ -101,8 +104,10 @@ class CableCalculator(
                 voltageDropCalculator.calculate(
                     currentA = designCurrent,
                     lengthM = load.lengthM,
-                    resistanceOhmPerKm = resistance,
-                    reactanceOhmPerKm = reactance,
+                    resistanceOhmPerKm =
+                        resistance,
+                    reactanceOhmPerKm =
+                        reactance,
                     voltageV = load.voltageV,
                     powerFactor = load.powerFactor,
                     phase = load.phase,
@@ -119,11 +124,13 @@ class CableCalculator(
                     voltageV = load.voltageV,
                     sourceShortCircuitMva =
                         sourceShortCircuitMva,
-                    cableLengthM = load.lengthM,
+                    cableLengthM =
+                        load.lengthM,
                     cableResistanceOhmPerKm =
                         resistance,
                     cableReactanceOhmPerKm =
-                        reactance
+                        reactance,
+                    parallelRuns = 1
                 )
 
             val protection =
@@ -139,12 +146,27 @@ class CableCalculator(
             val warnings =
                 mutableListOf<String>()
 
-            warnings +=
-                protection.warnings
+            warnings += protection.warnings
+
+            if (
+                correctedAmpacity <
+                designCurrent
+            ) {
+                warnings +=
+                    "Cable ampacity is below design current."
+            }
 
             if (!voltageDrop.withinLimit) {
                 warnings +=
                     "Voltage drop exceeds the specified limit."
+            }
+
+            if (
+                sourceShortCircuitMva > 0.0 &&
+                fault.faultCurrentKA <= 0.0
+            ) {
+                warnings +=
+                    "Short-circuit current could not be established."
             }
 
             return CableResult(
@@ -170,30 +192,26 @@ class CableCalculator(
             )
         }
 
+        val finalBaseAmpacity =
+            baseAmpacity(
+                section = lastSection,
+                material = load.material,
+                method = load.installationMethod
+            )
+
         return CableResult(
-            sectionMm2 =
-                sectionsMm2.last(),
-
-            designCurrentA =
-                designCurrent,
-
-            baseAmpacityA =
-                baseAmpacity(
-                    sectionsMm2.last(),
-                    load.material,
-                    load.installationMethod
-                ),
-
-            correctedAmpacityA = 0.0,
-
+            sectionMm2 = lastSection,
+            designCurrentA = designCurrent,
+            baseAmpacityA = finalBaseAmpacity,
+            correctedAmpacityA =
+                finalBaseAmpacity *
+                    ambientFactor *
+                    groupingFactor,
             voltageDropPercent = 0.0,
             voltageDropVolts = 0.0,
-
             breakerRatingA = 0.0,
             shortCircuitCurrentKA = 0.0,
-
             acceptable = false,
-
             warnings =
                 listOf(
                     "No standard cable section satisfies all design requirements."
@@ -216,8 +234,7 @@ class CableCalculator(
                     29.0
             }
 
-        return resistivity /
-            section
+        return resistivity / section
     }
 
     private fun reactance(
@@ -225,6 +242,11 @@ class CableCalculator(
         method: InstallationMethod
     ): Double {
 
+        /*
+         * Typical engineering design values.
+         * The final project design should use the selected
+         * cable manufacturer's data where available.
+         */
         return when (method) {
 
             InstallationMethod.FREE_AIR ->
