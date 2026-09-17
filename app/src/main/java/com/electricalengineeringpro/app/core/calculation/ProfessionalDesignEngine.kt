@@ -13,7 +13,6 @@ class ProfessionalDesignEngine(
     fun calculateLoads(
         loads: List<ElectricalLoad>
     ): List<LoadResult> {
-
         return loads.map {
             loadCalculator.calculate(it)
         }
@@ -35,7 +34,10 @@ class ProfessionalDesignEngine(
         }
 
         return designSummaryCalculator.calculate(
-            loads = loads
+            loads = loads,
+            voltage = voltage,
+            powerFactor = powerFactor,
+            phase = phase
         )
     }
 }
