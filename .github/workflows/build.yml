@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Professional Engineering Core
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Release APK
+    name: Build Release AAR
     runs-on: ubuntu-latest
 
     steps:
@@ -64,40 +64,38 @@ jobs:
 
           test -d "$ANDROID_HOME/platforms/android-35"
           test -d "$ANDROID_HOME/build-tools/35.0.0"
-          test -x "$ANDROID_HOME/build-tools/35.0.0/apksigner"
 
-      - name: Build Release APK
+      - name: Clean
+        run: |
+          set -euxo pipefail
+          gradle clean --no-daemon
+
+      - name: Run Unit Tests
+        run: |
+          set -euxo pipefail
+          gradle :app:test --no-daemon --stacktrace
+
+      - name: Build Release AAR
+        run: |
+          set -euxo pipefail
+          gradle :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Verify AAR
         run: |
           set -euxo pipefail
 
-          gradle :app:assembleRelease \
-            --no-daemon \
-            --stacktrace
+          AAR="app/build/outputs/aar/app-release.aar"
 
-      - name: Verify APK
-        run: |
-          set -euxo pipefail
+          test -f "$AAR"
 
-          APK="app/build/outputs/apk/release/app-release.apk"
+          mkdir -p app/build/outputs/aar/ProfessionalEngineeringCore
 
-          test -f "$APK"
+          cp "$AAR" \
+            app/build/outputs/aar/ProfessionalEngineeringCore.aar
 
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" \
-            verify \
-            --verbose \
-            "$APK"
-
-      - name: Copy APK
-        run: |
-          set -euxo pipefail
-
-          cp \
-            app/build/outputs/apk/release/app-release.apk \
-            app/build/outputs/apk/release/ElectricalCalculationsPro.apk
-
-      - name: Upload APK
+      - name: Upload AAR
         uses: actions/upload-artifact@v4
         with:
-          name: ElectricalCalculationsPro-APK
-          path: app/build/outputs/apk/release/ElectricalCalculationsPro.apk
+          name: ProfessionalEngineeringCore-AAR
+          path: app/build/outputs/aar/ProfessionalEngineeringCore.aar
           if-no-files-found: error
