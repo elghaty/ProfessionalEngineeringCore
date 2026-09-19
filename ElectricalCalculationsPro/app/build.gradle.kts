@@ -18,6 +18,7 @@ android {
         applicationId = "com.electrical.calculationspro"
 
         minSdk = 24
+
         targetSdk = 35
 
         versionCode =
@@ -64,9 +65,7 @@ android {
 dependencies {
 
     implementation(
-        "com.github.elghaty:" +
-            "ProfessionalEngineeringCore:" +
-            "main-SNAPSHOT"
+        "com.github.elghaty:ProfessionalEngineeringCore:1.0.0"
     )
 
     implementation(
@@ -94,22 +93,18 @@ dependencies {
     )
 
     implementation(
-        "androidx.lifecycle:" +
-            "lifecycle-viewmodel-compose:2.8.7"
+        "androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7"
     )
 
     implementation(
-        "androidx.room:" +
-            "room-runtime:2.6.1"
+        "androidx.room:room-runtime:2.6.1"
     )
 
     implementation(
-        "androidx.room:" +
-            "room-ktx:2.6.1"
+        "androidx.room:room-ktx:2.6.1"
     )
 
     ksp(
-        "androidx.room:" +
-            "room-compiler:2.6.1"
+        "androidx.room:room-compiler:2.6.1"
     )
 }
