@@ -11,6 +11,7 @@ import com.electricalengineeringpro.app.core.calculation.LoadCalculator
 import com.electricalengineeringpro.app.core.calculation.LoadScheduleCalculator
 import com.electricalengineeringpro.app.core.calculation.MdbCalculator
 import com.electricalengineeringpro.app.core.calculation.MotorCalculator
+import com.electricalengineeringpro.app.core.calculation.PanelDesignCalculator
 import com.electricalengineeringpro.app.core.calculation.PowerCalculator
 import com.electricalengineeringpro.app.core.calculation.ProtectionCalculator
 import com.electricalengineeringpro.app.core.calculation.PumpCalculator
@@ -21,29 +22,35 @@ import com.electricalengineeringpro.app.core.calculation.VoltageDropCalculator
 import com.electricalengineeringpro.app.core.sld.SldGenerator
 
 /**
- * Single public facade of the engineering calculation library.
+ * ProfessionalEngineeringCore
  *
- * This class contains NO engineering formulas
- * and NO engineering calculation logic.
+ * THE SINGLE ENGINEERING CALCULATION CORE.
  *
- * All calculations are implemented by the modular calculators.
+ * All engineering calculations are exposed through this facade.
+ *
+ * UI must never create independent calculation engines.
  */
 class ProfessionalEngineeringCore private constructor() {
 
-    val power = PowerCalculator()
+    val power =
+        PowerCalculator()
 
-    val loads = LoadCalculator()
+    val loads =
+        LoadCalculator()
 
-    val designSummary = DesignSummaryCalculator()
+    val designSummary =
+        DesignSummaryCalculator()
 
     val loadSchedule =
         LoadScheduleCalculator(
             loads
         )
 
-    val cable = CableCalculator()
+    val cable =
+        CableCalculator()
 
-    val breaker = BreakerCalculator()
+    val breaker =
+        BreakerCalculator()
 
     val breakerSelection =
         BreakerSelectionCalculator()
@@ -85,6 +92,18 @@ class ProfessionalEngineeringCore private constructor() {
             loadCalculator = loads,
             transformerSizingCalculator = transformerSizing,
             breakerSelectionCalculator = breakerSelection
+        )
+
+    /**
+     * Complete panel feeder design.
+     *
+     * This is still part of ProfessionalEngineeringCore.
+     */
+    val panelDesign =
+        PanelDesignCalculator(
+            cableCalculator = cable,
+            breakerCalculator = breakerSelection,
+            transformerSizingCalculator = transformerSizing
         )
 
     val sld =
