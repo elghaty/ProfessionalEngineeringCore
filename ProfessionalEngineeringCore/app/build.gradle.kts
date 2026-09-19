@@ -9,7 +9,6 @@ version = "1.0.0"
 
 android {
     namespace = "com.electricalengineeringpro.app.core"
-
     compileSdk = 35
 
     defaultConfig {
@@ -39,7 +38,6 @@ afterEvaluate {
         publications {
             create<MavenPublication>("release") {
                 from(components["release"])
-
                 groupId = "com.github.elghaty"
                 artifactId = "ProfessionalEngineeringCore"
                 version = "1.0.0"
@@ -50,6 +48,5 @@ afterEvaluate {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
-
     testImplementation("junit:junit:4.13.2")
 }
