@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Background -->
+    <path
+        android:fillColor="#0B2942"
+        android:pathData="
+            M54,4
+            A50,50 0,1 0,54,104
+            A50,50 0,1 0,54,4" />
+
+    <!-- Engineering ring -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M54,15
+            A39,39 0,1 0,54,93
+            A39,39 0,1 0,54,15
+            M54,21
+            A33,33 0,1 1,54,87
+            A33,33 0,1 1,54,21" />
+
+    <!-- Electrical lightning bolt -->
+    <path
+        android:fillColor="#FFC107"
+        android:pathData="
+            M61,18
+            L35,57
+            L51,57
+            L45,91
+            L75,48
+            L58,48
+            Z" />
+
+    <!-- Engineering E -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M22,35
+            L22,73
+            L42,73
+            L42,66
+            L30,66
+            L30,58
+            L40,58
+            L40,51
+            L30,51
+            L30,42
+            L42,42
+            L42,35
+            Z" />
+
+</vector>
