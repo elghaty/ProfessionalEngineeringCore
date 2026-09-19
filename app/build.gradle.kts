@@ -1,11 +1,6 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
-}
-
-kotlin {
-    jvmToolchain(17)
 }
 
 android {
@@ -35,19 +30,16 @@ android {
     }
 
     buildFeatures {
-        compose = true
         buildConfig = true
     }
 
     buildTypes {
         getByName("debug") {
             isMinifyEnabled = false
-            isShrinkResources = false
         }
 
         getByName("release") {
             isMinifyEnabled = false
-            isShrinkResources = false
         }
     }
 }
@@ -55,17 +47,9 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
 
-    implementation("androidx.activity:activity-compose:1.10.0")
+    implementation("androidx.appcompat:appcompat:1.7.0")
 
-    implementation("androidx.compose.ui:ui:1.7.6")
-
-    implementation("androidx.compose.material3:material3:1.3.1")
-
-    implementation("androidx.compose.ui:ui-tooling-preview:1.7.6")
-
-    debugImplementation(
-        "androidx.compose.ui:ui-tooling:1.7.6"
-    )
+    implementation("com.google.android.material:material:1.12.0")
 
     testImplementation("junit:junit:4.13.2")
 }
