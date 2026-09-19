@@ -6,7 +6,6 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
-import android.view.View
 import android.widget.*
 import com.electricalengineeringpro.app.core.calculation.*
 import com.electricalengineeringpro.app.core.model.*
@@ -17,14 +16,18 @@ class MainActivity : Activity() {
     private val core = ProfessionalEngineeringCore.instance
 
     private lateinit var content: LinearLayout
-    private lateinit var title: TextView
+    private lateinit var tabContainer: LinearLayout
 
-    private val bg = Color.rgb(8, 16, 28)
-    private val card = Color.rgb(18, 30, 46)
-    private val field = Color.rgb(25, 40, 58)
-    private val accent = Color.rgb(0, 150, 136)
+    private val bg = Color.rgb(7, 14, 24)
+    private val panel = Color.rgb(15, 27, 42)
+    private val inputBg = Color.rgb(24, 39, 56)
+    private val resultBg = Color.rgb(18, 34, 50)
+    private val accent = Color.rgb(0, 180, 170)
+    private val accentDark = Color.rgb(0, 105, 100)
     private val white = Color.WHITE
-    private val secondary = Color.rgb(180, 195, 210)
+    private val gray = Color.rgb(170, 185, 200)
+
+    private val tabs = mutableListOf<TextView>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,100 +35,77 @@ class MainActivity : Activity() {
         window.statusBarColor = bg
         window.navigationBarColor = bg
 
-        buildMainInterface()
+        buildInterface()
         showPower()
     }
 
-    private fun buildMainInterface() {
+    private fun buildInterface() {
 
         val scroll = ScrollView(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(bg)
-            setPadding(dp(16), dp(14), dp(16), dp(30))
+            setPadding(dp(12), dp(12), dp(12), dp(24))
         }
 
         val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(4), dp(4), dp(4), dp(12))
         }
 
-        title = TextView(this).apply {
+        val title = TextView(this).apply {
             text = "PROFESSIONAL ENGINEERING"
-            textSize = 21f
+            textSize = 22f
             setTextColor(white)
             typeface = Typeface.DEFAULT_BOLD
         }
 
-        header.addView(
-            title,
-            LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            )
-        )
-
-        val version = TextView(this).apply {
-            text = "V1.0"
-            textSize = 12f
-            setTextColor(accent)
-            typeface = Typeface.DEFAULT_BOLD
-        }
-
-        header.addView(version)
-
-        root.addView(
-            header,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        )
+        header.addView(title)
 
         val subtitle = TextView(this).apply {
             text = "Electrical Design & Calculation System"
-            textSize = 13f
-            setTextColor(secondary)
-            setPadding(0, dp(5), 0, dp(14))
+            textSize = 12f
+            setTextColor(gray)
+            setPadding(0, dp(4), 0, 0)
         }
 
-        root.addView(subtitle)
+        header.addView(subtitle)
 
-        val tabs = HorizontalScrollView(this).apply {
+        root.addView(header)
+
+        val section = TextView(this).apply {
+            text = "ENGINEERING CALCULATORS"
+            textSize = 11f
+            setTextColor(accent)
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(dp(4), dp(4), 0, dp(6))
+        }
+
+        root.addView(section)
+
+        val horizontal = HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
+            setBackgroundColor(panel)
+            setPadding(dp(4), dp(2), dp(4), dp(2))
         }
 
-        val tabContainer = LinearLayout(this).apply {
+        tabContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
         }
 
-        addTab(tabContainer, "POWER") { showPower() }
-        addTab(tabContainer, "LOAD") { showLoad() }
-        addTab(tabContainer, "CABLE") { showCable() }
-        addTab(tabContainer, "V-DROP") { showVoltageDrop() }
-        addTab(tabContainer, "SHORT") { showShortCircuit() }
-        addTab(tabContainer, "BREAKER") { showBreaker() }
-        addTab(tabContainer, "TRANSFORMER") { showTransformer() }
-        addTab(tabContainer, "GENERATOR") { showGenerator() }
-        addTab(tabContainer, "MOTOR") { showMotor() }
-        addTab(tabContainer, "PUMP") { showPump() }
-        addTab(tabContainer, "MDB") { showMdb() }
-        addTab(tabContainer, "PROTECTION") { showProtection() }
-        addTab(tabContainer, "NETWORK") { showNetwork() }
-        addTab(tabContainer, "DESIGN") { showCompleteDesign() }
-        addTab(tabContainer, "SLD") { showSld() }
-
-        tabs.addView(tabContainer)
+        horizontal.addView(tabContainer)
 
         root.addView(
-            tabs,
+            horizontal,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(55)
+                dp(74)
             )
         )
+
+        createTabs()
 
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -140,11 +120,11 @@ class MainActivity : Activity() {
         )
 
         val footer = TextView(this).apply {
-            text = "\nProfessional Engineering Core\n© Eng. Abdelraouf Elghaty"
-            textSize = 11f
+            text = "Professional Engineering Core\n© Eng. Abdelraouf Elghaty"
+            textSize = 10f
             setTextColor(Color.GRAY)
             gravity = Gravity.CENTER
-            setPadding(0, dp(25), 0, dp(5))
+            setPadding(0, dp(28), 0, 0)
         }
 
         root.addView(footer)
@@ -153,101 +133,223 @@ class MainActivity : Activity() {
         setContentView(scroll)
     }
 
+    private fun createTabs() {
+
+        addTab("POWER", "Power") { showPower() }
+        addTab("LOAD", "Loads") { showLoad() }
+        addTab("CABLE", "Cable") { showCable() }
+        addTab("V-DROP", "Voltage Drop") { showVoltageDrop() }
+        addTab("SHORT", "Short Circuit") { showShortCircuit() }
+        addTab("BREAKER", "Breaker") { showBreaker() }
+        addTab("TR", "Transformer") { showTransformer() }
+        addTab("GEN", "Generator") { showGenerator() }
+        addTab("MOTOR", "Motor") { showMotor() }
+        addTab("PUMP", "Pump") { showPump() }
+        addTab("MDB", "MDB") { showMdb() }
+        addTab("PROT", "Protection") { showProtection() }
+        addTab("NET", "Network") { showNetwork() }
+        addTab("DESIGN", "Complete Design") { showCompleteDesign() }
+        addTab("SLD", "Single Line") { showSld() }
+    }
+
     private fun addTab(
-        parent: LinearLayout,
-        text: String,
+        shortName: String,
+        fullName: String,
         action: () -> Unit
     ) {
-        val button = TextView(this).apply {
-            this.text = text
-            textSize = 11f
-            setTextColor(white)
+
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(dp(15), 0, dp(15), 0)
-            setBackgroundColor(Color.rgb(28, 45, 62))
+            setPadding(dp(7), dp(4), dp(7), dp(4))
+            setBackgroundColor(panel)
             setOnClickListener {
+                selectTab(this)
                 action()
             }
         }
 
+        val code = TextView(this).apply {
+            text = shortName
+            textSize = 12f
+            gravity = Gravity.CENTER
+            setTextColor(white)
+            typeface = Typeface.DEFAULT_BOLD
+        }
+
+        box.addView(code)
+
+        val name = TextView(this).apply {
+            text = fullName
+            textSize = 8f
+            gravity = Gravity.CENTER
+            setTextColor(gray)
+        }
+
+        box.addView(name)
+
         val params = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            dp(42)
+            dp(78),
+            dp(62)
         )
 
-        params.setMargins(dp(3), dp(4), dp(3), dp(4))
+        params.setMargins(dp(3), dp(5), dp(3), dp(5))
 
-        parent.addView(button, params)
+        tabContainer.addView(box, params)
+
+        tabs.add(code)
     }
 
-    private fun pageHeader(
-        name: String,
+    private fun selectTab(selected: LinearLayout) {
+
+        for (i in 0 until tabContainer.childCount) {
+
+            val item = tabContainer.getChildAt(i)
+
+            if (item == selected) {
+                item.setBackgroundColor(accentDark)
+
+                val code = item.getChildAt(0) as TextView
+                code.setTextColor(white)
+            } else {
+                item.setBackgroundColor(panel)
+
+                val code = item.getChildAt(0) as TextView
+                code.setTextColor(gray)
+            }
+        }
+    }
+
+    private fun page(
+        title: String,
         description: String
     ) {
+
         content.removeAllViews()
 
-        val heading = TextView(this).apply {
-            text = name
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(4), dp(18), dp(4), dp(10))
+        }
+
+        val t = TextView(this).apply {
+            text = title
             textSize = 22f
             setTextColor(white)
             typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, dp(18), 0, dp(3))
         }
 
-        content.addView(heading)
+        header.addView(t)
 
-        val desc = TextView(this).apply {
+        val d = TextView(this).apply {
             text = description
-            textSize = 13f
-            setTextColor(secondary)
-            setPadding(0, 0, 0, dp(15))
+            textSize = 12f
+            setTextColor(gray)
+            setPadding(0, dp(4), 0, 0)
         }
 
-        content.addView(desc)
+        header.addView(d)
+
+        content.addView(header)
     }
 
-    private fun input(
-        hint: String,
+    private fun field(
+        label: String,
+        unit: String = "",
         value: String = ""
     ): EditText {
 
-        val e = EditText(this).apply {
-            setHint(hint)
-            setText(value)
-            textSize = 15f
-            setTextColor(white)
-            setHintTextColor(Color.rgb(125, 145, 165))
-            setSingleLine(true)
-            inputType =
-                InputType.TYPE_CLASS_NUMBER or
-                        InputType.TYPE_NUMBER_FLAG_DECIMAL
-            setPadding(dp(14), 0, dp(14), 0)
-            setBackgroundColor(field)
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+            setBackgroundColor(panel)
         }
 
-        content.addView(
-            e,
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val labelView = TextView(this).apply {
+            text = label
+            textSize = 13f
+            setTextColor(white)
+            typeface = Typeface.DEFAULT_BOLD
+        }
+
+        row.addView(
+            labelView,
+            LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        )
+
+        if (unit.isNotEmpty()) {
+
+            val unitView = TextView(this).apply {
+                text = unit
+                textSize = 11f
+                setTextColor(accent)
+                typeface = Typeface.DEFAULT_BOLD
+            }
+
+            row.addView(unitView)
+        }
+
+        container.addView(row)
+
+        val edit = EditText(this).apply {
+            setText(value)
+            textSize = 16f
+            setTextColor(white)
+            setHintTextColor(Color.rgb(105, 125, 145))
+            setSingleLine(true)
+
+            inputType =
+                InputType.TYPE_CLASS_NUMBER or
+                        InputType.TYPE_NUMBER_FLAG_DECIMAL or
+                        InputType.TYPE_NUMBER_FLAG_SIGNED
+
+            setPadding(dp(12), 0, dp(12), 0)
+            setBackgroundColor(inputBg)
+        }
+
+        container.addView(
+            edit,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(52)
+                dp(48)
             ).apply {
-                setMargins(0, dp(5), 0, dp(5))
+                setMargins(0, dp(5), 0, 0)
             }
         )
 
-        return e
+        content.addView(
+            container,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, dp(4), 0, dp(4))
+            }
+        )
+
+        return edit
     }
 
-    private fun button(
+    private fun actionButton(
         text: String,
         action: () -> Unit
     ) {
+
         val b = Button(this).apply {
             this.text = text
             textSize = 14f
             isAllCaps = false
             setTextColor(white)
+            typeface = Typeface.DEFAULT_BOLD
             setOnClickListener {
                 action()
             }
@@ -259,36 +361,40 @@ class MainActivity : Activity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(52)
             ).apply {
-                setMargins(0, dp(12), 0, dp(5))
+                setMargins(0, dp(14), 0, dp(8))
             }
         )
     }
 
-    private fun resultCard(
-        title: String,
+    private fun result(
+        name: String,
         value: String
     ) {
+
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(12), dp(16), dp(12))
-            setBackgroundColor(card)
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            setBackgroundColor(resultBg)
         }
 
-        val t = TextView(this).apply {
-            text = title
-            textSize = 12f
-            setTextColor(secondary)
-        }
-
-        val v = TextView(this).apply {
-            text = value
-            textSize = 20f
-            setTextColor(white)
+        val label = TextView(this).apply {
+            text = name
+            textSize = 10f
+            setTextColor(gray)
             typeface = Typeface.DEFAULT_BOLD
         }
 
-        box.addView(t)
-        box.addView(v)
+        box.addView(label)
+
+        val valueView = TextView(this).apply {
+            text = value
+            textSize = 19f
+            setTextColor(accent)
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, dp(3), 0, 0)
+        }
+
+        box.addView(valueView)
 
         content.addView(
             box,
@@ -296,60 +402,77 @@ class MainActivity : Activity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(0, dp(5), 0, dp(5))
+                setMargins(0, dp(4), 0, dp(4))
             }
         )
     }
 
     private fun error(message: String) {
-        resultCard("INPUT / CALCULATION ERROR", message)
+        result("CALCULATION STATUS", message)
     }
 
-    private fun number(e: EditText): Double {
+    private fun value(e: EditText): Double {
         return e.text.toString().trim().toDouble()
     }
 
-    private fun safeNumber(e: EditText, default: Double): Double {
-        val text = e.text.toString().trim()
-        return if (text.isEmpty()) default else text.toDouble()
-    }
-
     private fun fmt(v: Double): String {
-        return if (kotlin.math.abs(v - v.roundToInt()) < 0.0001) {
+
+        return if (
+            kotlin.math.abs(v - v.roundToInt()) < 0.0001
+        ) {
             v.roundToInt().toString()
         } else {
             String.format("%.2f", v)
         }
     }
 
-    // ---------------------------------------------------------
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).roundToInt()
+    }
+
+    // =========================================================
     // POWER
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showPower() {
 
-        pageHeader(
-            "Power Calculator",
-            "Calculate current, kVA and active power."
+        page(
+            "POWER",
+            "Active power, apparent power and current calculation"
         )
 
-        val kw = input("Active Power (kW)", "100")
-        val voltage = input("Voltage (V)", "400")
-        val pf = input("Power Factor", "0.90")
+        val kw = field(
+            "Active Power",
+            "kW",
+            "100"
+        )
 
-        button("CALCULATE POWER") {
+        val voltage = field(
+            "Voltage",
+            "V",
+            "400"
+        )
+
+        val pf = field(
+            "Power Factor",
+            "",
+            "0.90"
+        )
+
+        actionButton("CALCULATE POWER") {
 
             try {
-                val result = core.power.fromKw(
-                    powerKw = number(kw),
-                    voltage = number(voltage),
-                    powerFactor = number(pf),
-                    phase = Phase.THREE
+
+                val r = core.power.fromKw(
+                    value(kw),
+                    value(voltage),
+                    value(pf),
+                    Phase.THREE
                 )
 
-                resultCard("ACTIVE POWER", "${fmt(result.activePowerKw)} kW")
-                resultCard("APPARENT POWER", "${fmt(result.apparentPowerKva)} kVA")
-                resultCard("CURRENT", "${fmt(result.currentA)} A")
+                result("ACTIVE POWER", "${fmt(r.activePowerKw)} kW")
+                result("APPARENT POWER", "${fmt(r.apparentPowerKva)} kVA")
+                result("CURRENT", "${fmt(r.currentA)} A")
 
             } catch (e: Exception) {
                 error(e.message ?: "Invalid input")
@@ -357,47 +480,76 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // LOAD
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showLoad() {
 
-        pageHeader(
-            "Load Calculator",
-            "Calculate connected, demand and design load."
+        page(
+            "LOAD",
+            "Connected, demand and design load calculation"
         )
 
-        val name = input("Load Name", "Load")
-        val qty = input("Quantity", "1")
-        val power = input("Unit Power (kW)", "10")
-        val pf = input("Power Factor", "0.90")
-        val demand = input("Demand Factor", "1.0")
-        val voltage = input("Voltage (V)", "400")
+        val name = field(
+            "Load Name",
+            "",
+            "MAIN LOAD"
+        )
 
-        button("CALCULATE LOAD") {
+        val quantity = field(
+            "Quantity",
+            "No.",
+            "1"
+        )
+
+        val power = field(
+            "Unit Power",
+            "kW",
+            "10"
+        )
+
+        val pf = field(
+            "Power Factor",
+            "",
+            "0.90"
+        )
+
+        val demand = field(
+            "Demand Factor",
+            "",
+            "1.00"
+        )
+
+        val voltage = field(
+            "Voltage",
+            "V",
+            "400"
+        )
+
+        actionButton("CALCULATE LOAD") {
 
             try {
 
                 val load = ElectricalLoad(
                     name = name.text.toString(),
                     type = LoadType.MISCELLANEOUS,
-                    quantity = number(qty).toInt(),
-                    powerKw = number(power),
-                    powerFactor = number(pf),
-                    demandFactor = number(demand),
-                    voltage = number(voltage),
+                    quantity = value(quantity).toInt(),
+                    powerKw = value(power),
+                    powerFactor = value(pf),
+                    demandFactor = value(demand),
+                    voltage = value(voltage),
                     phase = Phase.THREE
                 )
 
                 val r = core.loads.calculate(load)
 
-                resultCard("CONNECTED LOAD", "${fmt(r.connectedKw)} kW")
-                resultCard("DEMAND LOAD", "${fmt(r.demandKw)} kW")
-                resultCard("DESIGN LOAD", "${fmt(r.designKw)} kW")
-                resultCard("APPARENT POWER", "${fmt(r.apparentPowerKva)} kVA")
-                resultCard("CURRENT", "${fmt(r.currentA)} A")
-                resultCard("STARTING CURRENT", "${fmt(r.startingCurrentA)} A")
+                result("CONNECTED LOAD", "${fmt(r.connectedKw)} kW")
+                result("DEMAND LOAD", "${fmt(r.demandKw)} kW")
+                result("DESIGN LOAD", "${fmt(r.designKw)} kW")
+                result("APPARENT POWER", "${fmt(r.apparentPowerKva)} kVA")
+                result("CURRENT", "${fmt(r.currentA)} A")
+                result("STARTING CURRENT", "${fmt(r.startingCurrentA)} A")
 
             } catch (e: Exception) {
                 error(e.message ?: "Invalid input")
@@ -405,32 +557,51 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // CABLE
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showCable() {
 
-        pageHeader(
-            "Cable Sizing",
-            "Select conductor size from design current and voltage drop."
+        page(
+            "CABLE",
+            "Cable sizing according to current and voltage drop"
         )
 
-        val current = input("Design Current (A)", "100")
-        val length = input("Cable Length (m)", "50")
-        val voltage = input("Voltage (V)", "400")
-        val pf = input("Power Factor", "0.90")
+        val current = field(
+            "Design Current",
+            "A",
+            "100"
+        )
 
-        button("CALCULATE CABLE") {
+        val length = field(
+            "Cable Length",
+            "m",
+            "50"
+        )
+
+        val voltage = field(
+            "Voltage",
+            "V",
+            "400"
+        )
+
+        val pf = field(
+            "Power Factor",
+            "",
+            "0.90"
+        )
+
+        actionButton("CALCULATE CABLE") {
 
             try {
 
                 val r = core.cable.calculate(
                     CableInput(
-                        designCurrentA = number(current),
-                        lengthM = number(length),
-                        voltage = number(voltage),
-                        powerFactor = number(pf),
+                        designCurrentA = value(current),
+                        lengthM = value(length),
+                        voltage = value(voltage),
+                        powerFactor = value(pf),
                         phase = Phase.THREE,
                         material = ConductorMaterial.COPPER,
                         insulation = CableInsulation.XLPE,
@@ -439,22 +610,22 @@ class MainActivity : Activity() {
                     )
                 )
 
-                resultCard(
+                result(
                     "RECOMMENDED CABLE",
                     r.conductorDescription
                 )
 
-                resultCard(
+                result(
                     "AMPACITY",
                     "${fmt(r.ampacityA)} A"
                 )
 
-                resultCard(
+                result(
                     "VOLTAGE DROP",
                     "${fmt(r.voltageDropPercent)} %"
                 )
 
-                resultCard(
+                result(
                     "UTILIZATION",
                     "${fmt(r.utilizationPercent)} %"
                 )
@@ -465,43 +636,85 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // VOLTAGE DROP
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showVoltageDrop() {
 
-        pageHeader(
-            "Voltage Drop",
-            "Calculate voltage drop using cable R and X."
+        page(
+            "VOLTAGE DROP",
+            "Voltage drop calculation using R and X"
         )
 
-        val current = input("Current (A)", "100")
-        val length = input("Length (m)", "50")
-        val resistance = input("Resistance (Ω/km)", "0.20")
-        val reactance = input("Reactance (Ω/km)", "0.08")
-        val voltage = input("Voltage (V)", "400")
-        val pf = input("Power Factor", "0.90")
-        val max = input("Maximum Voltage Drop (%)", "3")
+        val current = field(
+            "Load Current",
+            "A",
+            "100"
+        )
 
-        button("CALCULATE VOLTAGE DROP") {
+        val length = field(
+            "Cable Length",
+            "m",
+            "50"
+        )
+
+        val resistance = field(
+            "Resistance",
+            "Ω/km",
+            "0.20"
+        )
+
+        val reactance = field(
+            "Reactance",
+            "Ω/km",
+            "0.08"
+        )
+
+        val voltage = field(
+            "Voltage",
+            "V",
+            "400"
+        )
+
+        val pf = field(
+            "Power Factor",
+            "",
+            "0.90"
+        )
+
+        val maximum = field(
+            "Maximum Voltage Drop",
+            "%",
+            "3"
+        )
+
+        actionButton("CALCULATE VOLTAGE DROP") {
 
             try {
 
                 val r = core.voltageDrop.calculate(
-                    currentA = number(current),
-                    lengthM = number(length),
-                    resistanceOhmPerKm = number(resistance),
-                    reactanceOhmPerKm = number(reactance),
-                    voltage = number(voltage),
-                    powerFactor = number(pf),
+                    currentA = value(current),
+                    lengthM = value(length),
+                    resistanceOhmPerKm = value(resistance),
+                    reactanceOhmPerKm = value(reactance),
+                    voltage = value(voltage),
+                    powerFactor = value(pf),
                     phase = Phase.THREE,
-                    maximumPercent = number(max)
+                    maximumPercent = value(maximum)
                 )
 
-                resultCard("VOLTAGE DROP", "${fmt(r.dropVolts)} V")
-                resultCard("VOLTAGE DROP %", "${fmt(r.dropPercent)} %")
-                resultCard(
+                result(
+                    "VOLTAGE DROP",
+                    "${fmt(r.dropVolts)} V"
+                )
+
+                result(
+                    "VOLTAGE DROP",
+                    "${fmt(r.dropPercent)} %"
+                )
+
+                result(
                     "STATUS",
                     if (r.compliant) "COMPLIANT" else "NOT COMPLIANT"
                 )
@@ -512,39 +725,53 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // SHORT CIRCUIT
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showShortCircuit() {
 
-        pageHeader(
-            "Short Circuit",
-            "Calculate transformer fault current."
+        page(
+            "SHORT CIRCUIT",
+            "Transformer fault current and fault level"
         )
 
-        val voltage = input("Secondary Voltage (V)", "400")
-        val kva = input("Transformer Rating (kVA)", "1000")
-        val z = input("Transformer Impedance (%)", "6")
+        val voltage = field(
+            "Secondary Voltage",
+            "V",
+            "400"
+        )
 
-        button("CALCULATE SHORT CIRCUIT") {
+        val kva = field(
+            "Transformer Rating",
+            "kVA",
+            "1000"
+        )
+
+        val impedance = field(
+            "Transformer Impedance",
+            "%",
+            "6"
+        )
+
+        actionButton("CALCULATE SHORT CIRCUIT") {
 
             try {
 
                 val r = core.shortCircuit.calculate(
                     ShortCircuitInput(
-                        sourceVoltage = number(voltage),
-                        transformerKva = number(kva),
-                        transformerImpedancePercent = number(z)
+                        sourceVoltage = value(voltage),
+                        transformerKva = value(kva),
+                        transformerImpedancePercent = value(impedance)
                     )
                 )
 
-                resultCard(
+                result(
                     "FAULT CURRENT",
                     "${fmt(r.faultCurrentKA)} kA"
                 )
 
-                resultCard(
+                result(
                     "FAULT LEVEL",
                     "${fmt(r.faultMva)} MVA"
                 )
@@ -555,47 +782,56 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // BREAKER
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showBreaker() {
 
-        pageHeader(
-            "Breaker Selection",
-            "Select standard breaker rating and breaking capacity."
+        page(
+            "BREAKER",
+            "Breaker rating and short-circuit breaking capacity"
         )
 
-        val current = input("Load Current (A)", "250")
-        val sc = input("Short Circuit (kA)", "25")
+        val current = field(
+            "Load Current",
+            "A",
+            "250"
+        )
 
-        button("SELECT BREAKER") {
+        val shortCircuit = field(
+            "Short Circuit Current",
+            "kA",
+            "25"
+        )
+
+        actionButton("SELECT BREAKER") {
 
             try {
 
                 val r = core.breakerSelection.calculate(
                     BreakerSelectionInput(
-                        loadCurrentA = number(current),
-                        shortCircuitKA = number(sc)
+                        loadCurrentA = value(current),
+                        shortCircuitKA = value(shortCircuit)
                     )
                 )
 
-                resultCard(
+                result(
                     "DESIGN CURRENT",
                     "${fmt(r.designCurrentA)} A"
                 )
 
-                resultCard(
+                result(
                     "RECOMMENDED BREAKER",
                     "${fmt(r.recommendedRatingA)} A"
                 )
 
-                resultCard(
+                result(
                     "BREAKING CAPACITY",
                     "${fmt(r.recommendedBreakingCapacityKA)} kA"
                 )
 
-                resultCard(
+                result(
                     "UTILIZATION",
                     "${fmt(r.utilizationPercent)} %"
                 )
@@ -606,46 +842,65 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // TRANSFORMER
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showTransformer() {
 
-        pageHeader(
-            "Transformer",
-            "Calculate transformer currents and short-circuit current."
+        page(
+            "TRANSFORMER",
+            "Transformer current and short-circuit calculation"
         )
 
-        val kva = input("Transformer Rating (kVA)", "1000")
-        val primary = input("Primary Voltage (V)", "11000")
-        val secondary = input("Secondary Voltage (V)", "400")
-        val z = input("Impedance (%)", "6")
+        val kva = field(
+            "Transformer Rating",
+            "kVA",
+            "1000"
+        )
 
-        button("CALCULATE TRANSFORMER") {
+        val primary = field(
+            "Primary Voltage",
+            "V",
+            "11000"
+        )
+
+        val secondary = field(
+            "Secondary Voltage",
+            "V",
+            "400"
+        )
+
+        val impedance = field(
+            "Transformer Impedance",
+            "%",
+            "6"
+        )
+
+        actionButton("CALCULATE TRANSFORMER") {
 
             try {
 
                 val r = core.transformer.calculate(
                     TransformerInput(
-                        ratingKva = number(kva),
-                        primaryVoltage = number(primary),
-                        secondaryVoltage = number(secondary),
-                        impedancePercent = number(z)
+                        ratingKva = value(kva),
+                        primaryVoltage = value(primary),
+                        secondaryVoltage = value(secondary),
+                        impedancePercent = value(impedance)
                     )
                 )
 
-                resultCard(
+                result(
                     "PRIMARY CURRENT",
                     "${fmt(r.primaryCurrentA)} A"
                 )
 
-                resultCard(
+                result(
                     "SECONDARY CURRENT",
                     "${fmt(r.secondaryCurrentA)} A"
                 )
 
-                resultCard(
+                result(
                     "SHORT CIRCUIT CURRENT",
                     "${fmt(r.shortCircuitCurrentKA)} kA"
                 )
@@ -656,44 +911,58 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // GENERATOR
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showGenerator() {
 
-        pageHeader(
-            "Generator",
-            "Calculate generator output, current and breaker."
+        page(
+            "GENERATOR",
+            "Generator active power, current and breaker"
         )
 
-        val kva = input("Generator Rating (kVA)", "500")
-        val voltage = input("Voltage (V)", "400")
-        val pf = input("Power Factor", "0.80")
+        val kva = field(
+            "Generator Rating",
+            "kVA",
+            "500"
+        )
 
-        button("CALCULATE GENERATOR") {
+        val voltage = field(
+            "Generator Voltage",
+            "V",
+            "400"
+        )
+
+        val pf = field(
+            "Power Factor",
+            "",
+            "0.80"
+        )
+
+        actionButton("CALCULATE GENERATOR") {
 
             try {
 
                 val r = core.generators.calculate(
                     GeneratorInput(
-                        ratingKva = number(kva),
-                        voltageV = number(voltage),
-                        powerFactor = number(pf)
+                        ratingKva = value(kva),
+                        voltageV = value(voltage),
+                        powerFactor = value(pf)
                     )
                 )
 
-                resultCard(
+                result(
                     "ACTIVE POWER",
                     "${fmt(r.activePowerKw)} kW"
                 )
 
-                resultCard(
+                result(
                     "FULL LOAD CURRENT",
                     "${fmt(r.fullLoadCurrentA)} A"
                 )
 
-                resultCard(
+                result(
                     "RECOMMENDED BREAKER",
                     "${fmt(r.recommendedBreakerA)} A"
                 )
@@ -704,44 +973,68 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // MOTOR
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showMotor() {
 
-        pageHeader(
-            "Motor",
-            "Calculate motor full-load and starting current."
+        page(
+            "MOTOR",
+            "Motor full-load and starting current"
         )
 
-        val power = input("Motor Power (kW)", "75")
-        val voltage = input("Voltage (V)", "400")
-        val pf = input("Power Factor", "0.85")
-        val efficiency = input("Efficiency", "0.92")
-        val starting = input("Starting Current Multiplier", "6")
+        val power = field(
+            "Motor Power",
+            "kW",
+            "75"
+        )
 
-        button("CALCULATE MOTOR") {
+        val voltage = field(
+            "Voltage",
+            "V",
+            "400"
+        )
+
+        val pf = field(
+            "Power Factor",
+            "",
+            "0.85"
+        )
+
+        val efficiency = field(
+            "Motor Efficiency",
+            "",
+            "0.92"
+        )
+
+        val starting = field(
+            "Starting Current Multiplier",
+            "x",
+            "6"
+        )
+
+        actionButton("CALCULATE MOTOR") {
 
             try {
 
                 val r = core.motors.calculate(
                     MotorInput(
-                        powerKw = number(power),
-                        voltage = number(voltage),
-                        powerFactor = number(pf),
-                        efficiency = number(efficiency),
+                        powerKw = value(power),
+                        voltage = value(voltage),
+                        powerFactor = value(pf),
+                        efficiency = value(efficiency),
                         phase = Phase.THREE,
-                        startingMultiplier = number(starting)
+                        startingMultiplier = value(starting)
                     )
                 )
 
-                resultCard(
+                result(
                     "FULL LOAD CURRENT",
                     "${fmt(r.fullLoadCurrentA)} A"
                 )
 
-                resultCard(
+                result(
                     "STARTING CURRENT",
                     "${fmt(r.startingCurrentA)} A"
                 )
@@ -752,51 +1045,80 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // PUMP
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showPump() {
 
-        pageHeader(
-            "Pump",
-            "Calculate hydraulic power, motor power and current."
+        page(
+            "PUMP",
+            "Hydraulic power, motor power and pump current"
         )
 
-        val flow = input("Flow (m³/s)", "0.10")
-        val head = input("Head (m)", "30")
-        val pumpEff = input("Pump Efficiency", "0.75")
-        val motorEff = input("Motor Efficiency", "0.92")
-        val pf = input("Power Factor", "0.85")
-        val voltage = input("Voltage (V)", "400")
+        val flow = field(
+            "Flow",
+            "m³/s",
+            "0.10"
+        )
 
-        button("CALCULATE PUMP") {
+        val head = field(
+            "Head",
+            "m",
+            "30"
+        )
+
+        val pumpEfficiency = field(
+            "Pump Efficiency",
+            "",
+            "0.75"
+        )
+
+        val motorEfficiency = field(
+            "Motor Efficiency",
+            "",
+            "0.92"
+        )
+
+        val pf = field(
+            "Power Factor",
+            "",
+            "0.85"
+        )
+
+        val voltage = field(
+            "Voltage",
+            "V",
+            "400"
+        )
+
+        actionButton("CALCULATE PUMP") {
 
             try {
 
                 val r = core.pumps.calculate(
                     PumpInput(
-                        flowM3s = number(flow),
-                        headM = number(head),
-                        pumpEfficiency = number(pumpEff),
-                        motorEfficiency = number(motorEff),
-                        powerFactor = number(pf),
-                        voltage = number(voltage),
+                        flowM3s = value(flow),
+                        headM = value(head),
+                        pumpEfficiency = value(pumpEfficiency),
+                        motorEfficiency = value(motorEfficiency),
+                        powerFactor = value(pf),
+                        voltage = value(voltage),
                         phase = Phase.THREE
                     )
                 )
 
-                resultCard(
+                result(
                     "HYDRAULIC POWER",
                     "${fmt(r.hydraulicPowerKw)} kW"
                 )
 
-                resultCard(
+                result(
                     "MOTOR POWER",
                     "${fmt(r.motorPowerKw)} kW"
                 )
 
-                resultCard(
+                result(
                     "MOTOR CURRENT",
                     "${fmt(r.currentA)} A"
                 )
@@ -807,58 +1129,82 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // MDB
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showMdb() {
 
-        pageHeader(
-            "MDB Design",
-            "Preliminary MDB incomer and busbar selection."
+        page(
+            "MDB",
+            "MDB demand load, incomer and busbar selection"
         )
 
-        val load = input("Connected Load (kW)", "500")
-        val demand = input("Demand Factor", "0.80")
-        val pf = input("Power Factor", "0.90")
-        val voltage = input("Voltage (V)", "400")
-        val spare = input("Spare Capacity", "0.20")
+        val load = field(
+            "Connected Load",
+            "kW",
+            "500"
+        )
 
-        button("CALCULATE MDB") {
+        val demand = field(
+            "Demand Factor",
+            "",
+            "0.80"
+        )
+
+        val pf = field(
+            "Power Factor",
+            "",
+            "0.90"
+        )
+
+        val voltage = field(
+            "Voltage",
+            "V",
+            "400"
+        )
+
+        val spare = field(
+            "Spare Capacity",
+            "",
+            "0.20"
+        )
+
+        actionButton("CALCULATE MDB") {
 
             try {
 
                 val r = core.mdb.calculate(
                     MdbInput(
-                        connectedLoadKw = number(load),
-                        demandFactor = number(demand),
-                        powerFactor = number(pf),
-                        voltageV = number(voltage),
-                        spareCapacity = number(spare)
+                        connectedLoadKw = value(load),
+                        demandFactor = value(demand),
+                        powerFactor = value(pf),
+                        voltageV = value(voltage),
+                        spareCapacity = value(spare)
                     )
                 )
 
-                resultCard(
+                result(
                     "DEMAND LOAD",
                     "${fmt(r.demandLoadKw)} kW"
                 )
 
-                resultCard(
-                    "DESIGN APPARENT POWER",
+                result(
+                    "APPARENT POWER",
                     "${fmt(r.apparentPowerKva)} kVA"
                 )
 
-                resultCard(
+                result(
                     "DESIGN CURRENT",
                     "${fmt(r.designCurrentA)} A"
                 )
 
-                resultCard(
+                result(
                     "RECOMMENDED INCOMER",
                     "${fmt(r.recommendedIncomerA)} A"
                 )
 
-                resultCard(
+                result(
                     "RECOMMENDED BUSBAR",
                     "${fmt(r.recommendedBusbarA)} A"
                 )
@@ -869,56 +1215,78 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // PROTECTION
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showProtection() {
 
-        pageHeader(
-            "Protection",
-            "Preliminary breaker, cable and short-circuit coordination."
+        page(
+            "PROTECTION",
+            "Cable, breaker and short-circuit protection check"
         )
 
-        val current = input("Design Current (A)", "250")
-        val cable = input("Cable Ampacity (A)", "300")
-        val sc = input("Short Circuit (kA)", "25")
-        val voltage = input("Voltage (V)", "400")
+        val current = field(
+            "Design Current",
+            "A",
+            "250"
+        )
 
-        button("CHECK PROTECTION") {
+        val cable = field(
+            "Cable Ampacity",
+            "A",
+            "300"
+        )
+
+        val shortCircuit = field(
+            "Short Circuit Current",
+            "kA",
+            "25"
+        )
+
+        val voltage = field(
+            "Voltage",
+            "V",
+            "400"
+        )
+
+        actionButton("CHECK PROTECTION") {
 
             try {
 
                 val r = core.protection.calculate(
                     ProtectionInput(
-                        designCurrentA = number(current),
-                        cableAmpacityA = number(cable),
-                        shortCircuitKA = number(sc),
-                        voltageV = number(voltage)
+                        designCurrentA = value(current),
+                        cableAmpacityA = value(cable),
+                        shortCircuitKA = value(shortCircuit),
+                        voltageV = value(voltage)
                     )
                 )
 
-                resultCard(
+                result(
                     "RECOMMENDED BREAKER",
                     "${fmt(r.recommendedBreakerA)} A"
                 )
 
-                resultCard(
+                result(
                     "BREAKING CAPACITY",
                     "${fmt(r.breakingCapacityKA)} kA"
                 )
 
-                resultCard(
+                result(
                     "CABLE PROTECTION",
                     if (r.cableProtected) "OK" else "NOT OK"
                 )
 
-                resultCard(
+                result(
                     "SHORT CIRCUIT PROTECTION",
                     if (r.shortCircuitProtected) "OK" else "NOT OK"
                 )
 
-                resultCard("STATUS", r.status)
+                result(
+                    "STATUS",
+                    r.status
+                )
 
             } catch (e: Exception) {
                 error(e.message ?: "Invalid input")
@@ -926,23 +1294,42 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // NETWORK
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showNetwork() {
 
-        pageHeader(
-            "Network Design",
-            "Preliminary electrical network calculation."
+        page(
+            "NETWORK",
+            "Electrical network load and transformer estimation"
         )
 
-        val load = input("Total Connected Load (kW)", "1000")
-        val demand = input("Demand Factor", "0.80")
-        val pf = input("Power Factor", "0.90")
-        val voltage = input("Voltage (V)", "400")
+        val load = field(
+            "Connected Load",
+            "kW",
+            "1000"
+        )
 
-        button("CALCULATE NETWORK") {
+        val demand = field(
+            "Demand Factor",
+            "",
+            "0.80"
+        )
+
+        val pf = field(
+            "Power Factor",
+            "",
+            "0.90"
+        )
+
+        val voltage = field(
+            "Voltage",
+            "V",
+            "400"
+        )
+
+        actionButton("CALCULATE NETWORK") {
 
             try {
 
@@ -950,46 +1337,46 @@ class MainActivity : Activity() {
                     name = "MAIN LOAD",
                     type = LoadType.MISCELLANEOUS,
                     quantity = 1,
-                    powerKw = number(load),
-                    powerFactor = number(pf),
-                    demandFactor = number(demand),
-                    voltage = number(voltage),
+                    powerKw = value(load),
+                    powerFactor = value(pf),
+                    demandFactor = value(demand),
+                    voltage = value(voltage),
                     phase = Phase.THREE
                 )
 
                 val r = core.network.calculate(
                     loads = listOf(electricalLoad),
-                    voltageV = number(voltage),
-                    powerFactor = number(pf),
+                    voltageV = value(voltage),
+                    powerFactor = value(pf),
                     phase = Phase.THREE
                 )
 
-                resultCard(
+                result(
                     "CONNECTED LOAD",
                     "${fmt(r.totalConnectedKw)} kW"
                 )
 
-                resultCard(
+                result(
                     "DEMAND LOAD",
                     "${fmt(r.totalDemandKw)} kW"
                 )
 
-                resultCard(
+                result(
                     "DESIGN LOAD",
                     "${fmt(r.totalDesignKw)} kW"
                 )
 
-                resultCard(
+                result(
                     "APPARENT POWER",
                     "${fmt(r.totalApparentPowerKva)} kVA"
                 )
 
-                resultCard(
+                result(
                     "MAIN CURRENT",
                     "${fmt(r.mainCurrentA)} A"
                 )
 
-                resultCard(
+                result(
                     "ESTIMATED TRANSFORMER",
                     "${fmt(r.estimatedTransformerKva)} kVA"
                 )
@@ -1000,24 +1387,48 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // COMPLETE DESIGN
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showCompleteDesign() {
 
-        pageHeader(
-            "Complete Design",
-            "Integrated preliminary electrical design."
+        page(
+            "COMPLETE DESIGN",
+            "Integrated preliminary electrical design"
         )
 
-        val load = input("Connected Load (kW)", "1000")
-        val demand = input("Demand Factor", "0.80")
-        val pf = input("Power Factor", "0.90")
-        val voltage = input("Voltage (V)", "400")
-        val sc = input("Short Circuit (kA)", "25")
+        val load = field(
+            "Connected Load",
+            "kW",
+            "1000"
+        )
 
-        button("RUN COMPLETE DESIGN") {
+        val demand = field(
+            "Demand Factor",
+            "",
+            "0.80"
+        )
+
+        val pf = field(
+            "Power Factor",
+            "",
+            "0.90"
+        )
+
+        val voltage = field(
+            "Voltage",
+            "V",
+            "400"
+        )
+
+        val shortCircuit = field(
+            "Short Circuit Current",
+            "kA",
+            "25"
+        )
+
+        actionButton("RUN COMPLETE DESIGN") {
 
             try {
 
@@ -1025,65 +1436,65 @@ class MainActivity : Activity() {
                     name = "MAIN LOAD",
                     type = LoadType.MISCELLANEOUS,
                     quantity = 1,
-                    powerKw = number(load),
-                    powerFactor = number(pf),
-                    demandFactor = number(demand),
-                    voltage = number(voltage),
+                    powerKw = value(load),
+                    powerFactor = value(pf),
+                    demandFactor = value(demand),
+                    voltage = value(voltage),
                     phase = Phase.THREE
                 )
 
                 val r = core.completeDesign.calculate(
                     CompleteDesignInput(
                         loads = listOf(electricalLoad),
-                        voltageV = number(voltage),
-                        powerFactor = number(pf),
-                        shortCircuitKA = number(sc),
+                        voltageV = value(voltage),
+                        powerFactor = value(pf),
+                        shortCircuitKA = value(shortCircuit),
                         phase = Phase.THREE
                     )
                 )
 
-                resultCard(
+                result(
                     "CONNECTED LOAD",
                     "${fmt(r.connectedLoadKW)} kW"
                 )
 
-                resultCard(
+                result(
                     "DEMAND LOAD",
                     "${fmt(r.demandLoadKW)} kW"
                 )
 
-                resultCard(
+                result(
                     "DESIGN LOAD",
                     "${fmt(r.designLoadKW)} kW"
                 )
 
-                resultCard(
+                result(
                     "APPARENT POWER",
                     "${fmt(r.apparentPowerKVA)} kVA"
                 )
 
-                resultCard(
+                result(
                     "MAIN CURRENT",
                     "${fmt(r.mainCurrentA)} A"
                 )
 
-                resultCard(
+                result(
                     "TRANSFORMER REQUIRED",
                     "${fmt(r.transformerRequiredKVA)} kVA"
                 )
 
-                resultCard(
+                result(
                     "RECOMMENDED TRANSFORMER",
                     "${fmt(r.transformerRecommendedKVA)} kVA"
                 )
 
-                resultCard(
+                result(
                     "MAIN BREAKER",
                     "${fmt(r.mainBreakerA)} A"
                 )
 
-                resultCard(
-                    "BREAKER Icu",
+                result(
+                    "BREAKER BREAKING CAPACITY",
                     "${fmt(r.breakerBreakingCapacityKA)} kA"
                 )
 
@@ -1093,36 +1504,55 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // SLD
-    // ---------------------------------------------------------
+    // =========================================================
 
     private fun showSld() {
 
-        pageHeader(
-            "Single Line Diagram",
-            "Generate a preliminary electrical single-line diagram."
+        page(
+            "SINGLE LINE DIAGRAM",
+            "Generate the electrical network structure"
         )
 
-        val sourceName = input("Source Name", "UTILITY")
-        val transformerKva = input("Transformer Rating (kVA)", "1000")
-        val mainPanel = input("Main Panel", "MDB")
-        val feeder = input("Feeder", "FEEDER-01")
+        val source = field(
+            "Supply Source",
+            "",
+            "UTILITY"
+        )
 
-        button("GENERATE SLD") {
+        val transformer = field(
+            "Transformer Rating",
+            "kVA",
+            "1000"
+        )
+
+        val panel = field(
+            "Main Panel",
+            "",
+            "MDB"
+        )
+
+        val feeder = field(
+            "Feeder",
+            "",
+            "FEEDER-01"
+        )
+
+        actionButton("GENERATE SLD") {
 
             try {
 
-                val source = NetworkElement(
+                val sourceElement = NetworkElement(
                     id = "SOURCE",
-                    name = sourceName.text.toString(),
+                    name = source.text.toString(),
                     type = NetworkElementType.SOURCE,
-                    ratingKva = number(transformerKva)
+                    ratingKva = value(transformer)
                 )
 
-                val panel = NetworkElement(
+                val panelElement = NetworkElement(
                     id = "MDB",
-                    name = mainPanel.text.toString(),
+                    name = panel.text.toString(),
                     type = NetworkElementType.PANEL
                 )
 
@@ -1133,63 +1563,50 @@ class MainActivity : Activity() {
                 )
 
                 val diagram = core.sld.generate(
-                    source = source,
-                    panels = listOf(panel),
+                    source = sourceElement,
+                    panels = listOf(panelElement),
                     feeders = listOf(feederElement)
                 )
 
-                resultCard(
+                result(
                     "SLD STATUS",
                     "GENERATED"
                 )
 
-                resultCard(
+                result(
                     "SOURCE",
-                    source.name
+                    sourceElement.name
                 )
 
-                resultCard(
-                    "NODES",
+                result(
+                    "NUMBER OF NODES",
                     diagram.nodes.size.toString()
                 )
 
-                resultCard(
-                    "CONNECTIONS",
+                result(
+                    "NUMBER OF CONNECTIONS",
                     diagram.connections.size.toString()
                 )
 
                 diagram.nodes.forEachIndexed { index, node ->
 
-                    resultCard(
+                    result(
                         "NODE ${index + 1}",
-                        "${node.name}  •  ${node.type}"
+                        "${node.name} • ${node.type}"
                     )
                 }
 
                 diagram.connections.forEachIndexed { index, connection ->
 
-                    resultCard(
+                    result(
                         "CONNECTION ${index + 1}",
                         "${connection.fromId} → ${connection.toId}"
                     )
                 }
 
-                resultCard(
-                    "NEXT STEP",
-                    "Graphical SLD renderer will use this generated network."
-                )
-
             } catch (e: Exception) {
                 error(e.message ?: "SLD generation failed")
             }
         }
-    }
-
-    // ---------------------------------------------------------
-    // UTILITY
-    // ---------------------------------------------------------
-
-    private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density).roundToInt()
     }
 }
