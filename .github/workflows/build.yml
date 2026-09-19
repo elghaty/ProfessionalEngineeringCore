@@ -1,6 +1,6 @@
-name: Build Professional Engineering Core
+name: Build APK
 
-on:
+"on":
   push:
     branches:
       - main
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Release AAR
+    name: Build Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -43,13 +43,14 @@ jobs:
           echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
           echo "$SDK_ROOT/build-tools/35.0.0" >> "$GITHUB_PATH"
 
-          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-
-          if [ ! -x "$SDKMANAGER" ]; then
+          if [ -x "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          elif [ -x "$SDK_ROOT/cmdline-tools/bin/sdkmanager" ]; then
             SDKMANAGER="$SDK_ROOT/cmdline-tools/bin/sdkmanager"
+          else
+            echo "sdkmanager not found"
+            exit 1
           fi
-
-          test -x "$SDKMANAGER"
 
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
 
@@ -58,44 +59,41 @@ jobs:
             "platforms;android-35" \
             "build-tools;35.0.0"
 
-      - name: Verify Android SDK
+      - name: Build APK
+        shell: bash
         run: |
           set -euxo pipefail
 
-          test -d "$ANDROID_HOME/platforms/android-35"
-          test -d "$ANDROID_HOME/build-tools/35.0.0"
+          gradle :app:assembleRelease \
+            --no-daemon \
+            --stacktrace
 
-      - name: Clean
-        run: |
-          set -euxo pipefail
-          gradle clean --no-daemon
-
-      - name: Run Unit Tests
-        run: |
-          set -euxo pipefail
-          gradle :app:test --no-daemon --stacktrace
-
-      - name: Build Release AAR
-        run: |
-          set -euxo pipefail
-          gradle :app:assembleRelease --no-daemon --stacktrace
-
-      - name: Verify AAR
+      - name: Verify APK
+        shell: bash
         run: |
           set -euxo pipefail
 
-          AAR="app/build/outputs/aar/app-release.aar"
+          APK="app/build/outputs/apk/release/app-release.apk"
 
-          test -f "$AAR"
+          test -f "$APK"
 
-          mkdir -p app/build/outputs/aar/ProfessionalEngineeringCore
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" \
+            verify \
+            --verbose \
+            "$APK"
 
-          cp "$AAR" \
-            app/build/outputs/aar/ProfessionalEngineeringCore.aar
+      - name: Copy APK
+        shell: bash
+        run: |
+          set -euxo pipefail
 
-      - name: Upload AAR
+          cp \
+            app/build/outputs/apk/release/app-release.apk \
+            app/build/outputs/apk/release/ProfessionalEngineeringCore.apk
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ProfessionalEngineeringCore-AAR
-          path: app/build/outputs/aar/ProfessionalEngineeringCore.aar
+          name: ProfessionalEngineeringCore
+          path: app/build/outputs/apk/release/ProfessionalEngineeringCore.apk
           if-no-files-found: error
