@@ -23,28 +23,27 @@ import com.electricalengineeringpro.app.core.sld.SldGenerator
 /**
  * Single public facade of the engineering calculation library.
  *
- * This class is intentionally free of engineering formulas and calculation logic.
- * All engineering behavior is implemented by the modular calculators.
+ * This class contains NO engineering formulas
+ * and NO engineering calculation logic.
+ *
+ * All calculations are implemented by the modular calculators.
  */
 class ProfessionalEngineeringCore private constructor() {
 
-    val power =
-        PowerCalculator()
+    val power = PowerCalculator()
 
-    val loads =
-        LoadCalculator()
+    val loads = LoadCalculator()
 
-    val designSummary =
-        DesignSummaryCalculator()
+    val designSummary = DesignSummaryCalculator()
 
     val loadSchedule =
-        LoadScheduleCalculator(loads)
+        LoadScheduleCalculator(
+            loads
+        )
 
-    val cable =
-        CableCalculator()
+    val cable = CableCalculator()
 
-    val breaker =
-        BreakerCalculator()
+    val breaker = BreakerCalculator()
 
     val breakerSelection =
         BreakerSelectionCalculator()
@@ -77,7 +76,9 @@ class ProfessionalEngineeringCore private constructor() {
         MdbCalculator()
 
     val network =
-        ElectricalNetworkCalculator(loads)
+        ElectricalNetworkCalculator(
+            loads
+        )
 
     val completeDesign =
         CompleteDesignCalculator(
