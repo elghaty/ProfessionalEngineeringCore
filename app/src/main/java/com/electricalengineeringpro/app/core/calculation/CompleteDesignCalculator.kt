@@ -1,6 +1,5 @@
 package com.electricalengineeringpro.app.core.calculation
 
-import com.electricalengineeringpro.app.core.ProfessionalEngineeringCore
 import com.electricalengineeringpro.app.core.model.ElectricalLoad
 import com.electricalengineeringpro.app.core.model.Phase
 import kotlin.math.sqrt
@@ -9,14 +8,7 @@ data class CompleteDesignInput(
     val loads: List<ElectricalLoad>,
     val voltageV: Double = 400.0,
     val powerFactor: Double = 0.90,
-
-    /*
-     * Diversity factor:
-     * 1.0 means no diversity.
-     * Greater than 1.0 reduces coincident demand.
-     */
     val diversityFactor: Double = 1.15,
-
     val shortCircuitKA: Double = 0.0,
     val phase: Phase = Phase.THREE
 )
@@ -34,7 +26,9 @@ data class CompleteDesignResult(
 )
 
 class CompleteDesignCalculator(
-    private val core: ProfessionalEngineeringCore
+    private val loadCalculator: LoadCalculator,
+    private val transformerSizingCalculator: TransformerSizingCalculator,
+    private val breakerSelectionCalculator: BreakerSelectionCalculator
 ) {
 
     fun calculate(
@@ -63,7 +57,7 @@ class CompleteDesignCalculator(
 
         val loadResults =
             input.loads.map {
-                core.loads.calculate(it)
+                loadCalculator.calculate(it)
             }
 
         val connectedLoadKW =
@@ -104,7 +98,7 @@ class CompleteDesignCalculator(
             }
 
         val transformer =
-            core.transformerSizing.calculate(
+            transformerSizingCalculator.calculate(
                 TransformerSizingInput(
                     designLoadKW = designLoadKW,
                     powerFactor = input.powerFactor,
@@ -113,7 +107,7 @@ class CompleteDesignCalculator(
             )
 
         val breaker =
-            core.breakerSelection.calculate(
+            breakerSelectionCalculator.calculate(
                 BreakerSelectionInput(
                     loadCurrentA = mainCurrentA,
                     shortCircuitKA = input.shortCircuitKA
