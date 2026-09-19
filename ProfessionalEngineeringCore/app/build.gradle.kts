@@ -1,18 +1,36 @@
 plugins {
-    id("com.android.library")
+    id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("maven-publish")
 }
-
-group = "com.github.elghaty"
-version = "1.0.0"
 
 android {
     namespace = "com.electricalengineeringpro.app.core"
+
     compileSdk = 35
 
     defaultConfig {
+        applicationId = "com.electricalengineeringpro.professionalengineeringcore"
         minSdk = 24
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0.0"
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+        }
+
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile(
+                    "proguard-android-optimize.txt"
+                ),
+                "proguard-rules.pro"
+            )
+        }
     }
 
     compileOptions {
@@ -25,28 +43,12 @@ android {
     }
 
     buildFeatures {
-        buildConfig = false
-    }
-
-    publishing {
-        singleVariant("release")
-    }
-}
-
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components["release"])
-                groupId = "com.github.elghaty"
-                artifactId = "ProfessionalEngineeringCore"
-                version = "1.0.0"
-            }
-        }
+        buildConfig = true
     }
 }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
+
     testImplementation("junit:junit:4.13.2")
 }
