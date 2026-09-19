@@ -3,6 +3,7 @@ package com.electricalengineeringpro.app.core.calculation
 import com.electricalengineeringpro.app.core.model.CableInput
 import com.electricalengineeringpro.app.core.model.CableResult
 import com.electricalengineeringpro.app.core.model.ConductorMaterial
+import com.electricalengineeringpro.app.core.model.InstallationMethod
 import com.electricalengineeringpro.app.core.model.Phase
 import kotlin.math.sqrt
 
@@ -13,49 +14,53 @@ class CableCalculator {
         val baseAmpacityA: Double
     )
 
-    private val copperSizes = listOf(
-        CableSize(1.5, 18.0),
-        CableSize(2.5, 24.0),
-        CableSize(4.0, 32.0),
-        CableSize(6.0, 41.0),
-        CableSize(10.0, 57.0),
-        CableSize(16.0, 76.0),
-        CableSize(25.0, 101.0),
-        CableSize(35.0, 125.0),
-        CableSize(50.0, 150.0),
-        CableSize(70.0, 192.0),
-        CableSize(95.0, 232.0),
-        CableSize(120.0, 269.0),
-        CableSize(150.0, 309.0),
-        CableSize(185.0, 353.0),
-        CableSize(240.0, 415.0),
-        CableSize(300.0, 473.0),
-        CableSize(400.0, 556.0)
-    )
+    private val copperSizes =
+        listOf(
+            CableSize(1.5, 18.0),
+            CableSize(2.5, 24.0),
+            CableSize(4.0, 32.0),
+            CableSize(6.0, 41.0),
+            CableSize(10.0, 57.0),
+            CableSize(16.0, 76.0),
+            CableSize(25.0, 101.0),
+            CableSize(35.0, 125.0),
+            CableSize(50.0, 150.0),
+            CableSize(70.0, 192.0),
+            CableSize(95.0, 232.0),
+            CableSize(120.0, 269.0),
+            CableSize(150.0, 309.0),
+            CableSize(185.0, 353.0),
+            CableSize(240.0, 415.0),
+            CableSize(300.0, 473.0),
+            CableSize(400.0, 556.0)
+        )
 
-    private val aluminiumSizes = listOf(
-        CableSize(16.0, 59.0),
-        CableSize(25.0, 78.0),
-        CableSize(35.0, 96.0),
-        CableSize(50.0, 116.0),
-        CableSize(70.0, 147.0),
-        CableSize(95.0, 178.0),
-        CableSize(120.0, 205.0),
-        CableSize(150.0, 233.0),
-        CableSize(185.0, 265.0),
-        CableSize(240.0, 310.0),
-        CableSize(300.0, 354.0),
-        CableSize(400.0, 416.0)
-    )
+    private val aluminiumSizes =
+        listOf(
+            CableSize(16.0, 59.0),
+            CableSize(25.0, 78.0),
+            CableSize(35.0, 96.0),
+            CableSize(50.0, 116.0),
+            CableSize(70.0, 147.0),
+            CableSize(95.0, 178.0),
+            CableSize(120.0, 205.0),
+            CableSize(150.0, 233.0),
+            CableSize(185.0, 265.0),
+            CableSize(240.0, 310.0),
+            CableSize(300.0, 354.0),
+            CableSize(400.0, 416.0)
+        )
 
-    fun calculate(input: CableInput): CableResult {
+    fun calculate(
+        input: CableInput
+    ): CableResult {
 
         require(input.designCurrentA > 0.0) {
             "Design current must be greater than zero."
         }
 
         require(input.lengthM >= 0.0) {
-            "Cable length must not be negative."
+            "Cable length cannot be negative."
         }
 
         require(input.voltage > 0.0) {
@@ -74,8 +79,8 @@ class CableCalculator {
             "Grouping correction factor must be greater than zero."
         }
 
-        require(input.targetVoltageDropPercent >= 0.0) {
-            "Voltage-drop limit must not be negative."
+        require(input.targetVoltageDropPercent > 0.0) {
+            "Voltage-drop limit must be greater than zero."
         }
 
         val table =
@@ -85,20 +90,37 @@ class CableCalculator {
                 aluminiumSizes
             }
 
+        val installationFactor =
+            installationCorrectionFactor(
+                input.installationMethod
+            )
+
         val correctionFactor =
-            input.ambientFactor * input.groupingFactor
+            input.ambientFactor *
+                input.groupingFactor *
+                installationFactor
 
         require(correctionFactor > 0.0) {
             "Total correction factor must be greater than zero."
         }
 
         val requiredBaseAmpacity =
-            input.designCurrentA / correctionFactor
+            input.designCurrentA /
+                correctionFactor
 
         var selected =
             table.firstOrNull {
                 it.baseAmpacityA >= requiredBaseAmpacity
-            } ?: table.last()
+            }
+
+        /*
+         * If the normal ampacity table is not enough,
+         * use the largest available cable and let the
+         * result clearly show its utilization.
+         */
+        if (selected == null) {
+            selected = table.last()
+        }
 
         var voltageDropPercent =
             calculateVoltageDropPercent(
@@ -117,11 +139,11 @@ class CableCalculator {
             selected != table.last()
         ) {
 
-            val index = table.indexOf(selected)
+            val index =
+                table.indexOf(selected)
 
             selected =
-                table.getOrNull(index + 1)
-                    ?: break
+                table[index + 1]
 
             voltageDropPercent =
                 calculateVoltageDropPercent(
@@ -136,7 +158,8 @@ class CableCalculator {
         }
 
         val correctedAmpacity =
-            selected.baseAmpacityA * correctionFactor
+            selected.baseAmpacityA *
+                correctionFactor
 
         val utilizationPercent =
             input.designCurrentA /
@@ -144,18 +167,62 @@ class CableCalculator {
                 100.0
 
         return CableResult(
-            selectedSizeMm2 = selected.sizeMm2,
-            ampacityA = correctedAmpacity,
-            voltageDropPercent = voltageDropPercent,
-            utilizationPercent = utilizationPercent,
+            selectedSizeMm2 =
+                selected.sizeMm2,
+
+            ampacityA =
+                correctedAmpacity,
+
+            voltageDropPercent =
+                voltageDropPercent,
+
+            utilizationPercent =
+                utilizationPercent,
+
             conductorDescription =
                 buildDescription(
-                    sizeMm2 = selected.sizeMm2,
-                    phase = input.phase,
-                    material = input.material,
-                    insulation = input.insulation.name
+                    sizeMm2 =
+                        selected.sizeMm2,
+
+                    phase =
+                        input.phase,
+
+                    material =
+                        input.material,
+
+                    insulation =
+                        input.insulation.name,
+
+                    installationMethod =
+                        input.installationMethod
                 )
         )
+    }
+
+    private fun installationCorrectionFactor(
+        method: InstallationMethod
+    ): Double {
+
+        return when (method) {
+
+            InstallationMethod.CONDUIT ->
+                0.90
+
+            InstallationMethod.TRAY ->
+                1.00
+
+            InstallationMethod.LADDER ->
+                1.05
+
+            InstallationMethod.DUCT ->
+                0.90
+
+            InstallationMethod.BURIED ->
+                0.85
+
+            InstallationMethod.FREE_AIR ->
+                1.10
+        }
     }
 
     private fun calculateVoltageDropPercent(
@@ -170,8 +237,12 @@ class CableCalculator {
 
         val resistivity =
             when (material) {
-                ConductorMaterial.COPPER -> 0.0175
-                ConductorMaterial.ALUMINIUM -> 0.0282
+
+                ConductorMaterial.COPPER ->
+                    0.0175
+
+                ConductorMaterial.ALUMINIUM ->
+                    0.0282
             }
 
         val resistanceOhm =
@@ -182,7 +253,8 @@ class CableCalculator {
         val sinPhi =
             sqrt(
                 1.0 -
-                    powerFactor * powerFactor
+                    powerFactor *
+                    powerFactor
             )
 
         val reactanceOhmPerKm =
@@ -226,30 +298,61 @@ class CableCalculator {
         sizeMm2: Double,
         phase: Phase,
         material: ConductorMaterial,
-        insulation: String
+        insulation: String,
+        installationMethod: InstallationMethod
     ): String {
 
         val conductors =
             when (phase) {
-                Phase.THREE -> "4C"
-                Phase.SINGLE -> "2C"
+
+                Phase.THREE ->
+                    "4C"
+
+                Phase.SINGLE ->
+                    "2C"
             }
 
         val materialName =
-            material.name
+            when (material) {
+
+                ConductorMaterial.COPPER ->
+                    "Cu"
+
+                ConductorMaterial.ALUMINIUM ->
+                    "Al"
+            }
+
+        val insulationName =
+            insulation
                 .lowercase()
                 .replaceFirstChar {
                     it.uppercase()
                 }
 
+        val installationName =
+            installationMethod.name
+                .lowercase()
+                .replace(
+                    "_",
+                    " "
+                )
+                .replaceFirstChar {
+                    it.uppercase()
+                }
+
         return "$conductors × ${format(sizeMm2)} mm² " +
-            "$materialName $insulation"
+            "$materialName $insulationName " +
+            "on $installationName"
     }
 
-    private fun format(value: Double): String =
-        if (value % 1.0 == 0.0) {
+    private fun format(
+        value: Double
+    ): String {
+
+        return if (value % 1.0 == 0.0) {
             value.toInt().toString()
         } else {
             value.toString()
         }
+    }
 }
