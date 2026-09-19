@@ -1,6 +1,6 @@
 name: Build APK
 
-"on":
+on:
   push:
     branches:
       - main
@@ -64,7 +64,7 @@ jobs:
         run: |
           set -euxo pipefail
 
-          gradle :app:assembleRelease \
+          gradle :app:clean :app:assembleRelease \
             --no-daemon \
             --stacktrace
 
@@ -88,12 +88,12 @@ jobs:
           set -euxo pipefail
 
           cp \
-            app/build/outputs/apk/release/app-release.apk \
-            app/build/outputs/apk/release/ProfessionalEngineeringCore.apk
+            "app/build/outputs/apk/release/app-release.apk" \
+            "app/build/outputs/apk/release/ProfessionalEngineeringCore.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ProfessionalEngineeringCore
+          name: ProfessionalEngineeringCore-APK
           path: app/build/outputs/apk/release/ProfessionalEngineeringCore.apk
           if-no-files-found: error
