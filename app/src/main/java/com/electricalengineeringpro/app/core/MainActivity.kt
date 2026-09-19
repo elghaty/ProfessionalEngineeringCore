@@ -5,8 +5,8 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.text.InputType
-import android.view.Gravity
 import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -23,1095 +23,984 @@ import com.electricalengineeringpro.app.core.ui.SldDiagramView
 
 class MainActivity : Activity() {
 
-    private lateinit var content: LinearLayout
+private lateinit var content: LinearLayout
+private lateinit var resultContainer: LinearLayout
+private lateinit var sourceDataContainer: LinearLayout
 
-    private lateinit var panelNameInput: EditText
-    private lateinit var loadInput: EditText
-    private lateinit var pfInput: EditText
-    private lateinit var voltageInput: EditText
-    private lateinit var lengthInput: EditText
+private lateinit var panelNameInput: EditText
+private lateinit var loadInput: EditText
+private lateinit var pfInput: EditText
+private lateinit var voltageInput: EditText
+private lateinit var lengthInput: EditText
 
-    private lateinit var sourceSpinner: Spinner
+private lateinit var sourceSpinner: Spinner
+private lateinit var sourceKvaInput: EditText
+private lateinit var sourceImpedanceInput: EditText
+private lateinit var upstreamIscInput: EditText
 
-    private lateinit var sourceKvaInput: EditText
-    private lateinit var sourceImpedanceInput: EditText
-    private lateinit var upstreamIscInput: EditText
+private lateinit var cableSpinner: Spinner
+private lateinit var installationSpinner: Spinner
 
-    private lateinit var cableSpinner: Spinner
-    private lateinit var installationSpinner: Spinner
+private lateinit var ambientInput: EditText
+private lateinit var groupingInput: EditText
+private lateinit var voltageDropInput: EditText
 
-    private lateinit var ambientInput: EditText
-    private lateinit var groupingInput: EditText
-    private lateinit var voltageDropInput: EditText
+private val core: ProfessionalEngineeringCore
+    get() = ProfessionalEngineeringCore.instance
 
-    private lateinit var resultContainer: LinearLayout
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    buildUi()
+}
 
-    private lateinit var sourceDataContainer: LinearLayout
+private fun buildUi() {
 
-    private val core =
-        ProfessionalEngineeringCore.instance
-
-    private val calculator
-        get() = core.panelDesign
-
-    override fun onCreate(
-        savedInstanceState: Bundle?
-    ) {
-
-        super.onCreate(
-            savedInstanceState
+    val root = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setBackgroundColor(
+            Color.rgb(244, 247, 251)
         )
-
-        buildUi()
     }
 
-    private fun buildUi() {
+    root.addView(
+        createHeader()
+    )
 
-        val root =
-            LinearLayout(this)
+    val scrollView = ScrollView(this)
 
-        root.orientation =
-            LinearLayout.VERTICAL
-
-        root.setBackgroundColor(
-            Color.rgb(
-                244,
-                247,
-                251
-            )
-        )
-
-        root.addView(
-            createHeader()
-        )
-
-        val scroll =
-            ScrollView(this)
-
-        content =
-            LinearLayout(this)
-
-        content.orientation =
-            LinearLayout.VERTICAL
-
-        content.setPadding(
+    content = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(
             dp(16),
             dp(14),
             dp(16),
             dp(40)
         )
+    }
 
-        scroll.addView(
-            content
+    scrollView.addView(content)
+
+    root.addView(
+        scrollView,
+        LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            0,
+            1f
+        )
+    )
+
+    setContentView(root)
+
+    buildPanelDesignScreen()
+}
+
+private fun createHeader(): View {
+
+    return LinearLayout(this).apply {
+
+        orientation = LinearLayout.VERTICAL
+
+        setPadding(
+            dp(20),
+            dp(14),
+            dp(20),
+            dp(14)
         )
 
-        root.addView(
-            scroll,
-            LinearLayout.LayoutParams(
-                -1,
+        setBackgroundColor(
+            Color.rgb(11, 41, 66)
+        )
+
+        addView(
+            TextView(this@MainActivity).apply {
+                text = "⚡ PROFESSIONAL ENGINEERING"
+                textSize = 20f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.WHITE)
+            }
+        )
+
+        addView(
+            TextView(this@MainActivity).apply {
+                text = "Electrical Design & Calculation System"
+                textSize = 12f
+                setTextColor(
+                    Color.rgb(210, 225, 235)
+                )
+                setPadding(
+                    0,
+                    dp(4),
+                    0,
+                    0
+                )
+            }
+        )
+    }
+}
+
+private fun buildPanelDesignScreen() {
+
+    content.removeAllViews()
+
+    addSectionTitle(
+        "PANEL DESIGN",
+        "Enter the electrical design data."
+    )
+
+    panelNameInput = addEdit(
+        label = "Panel Name",
+        defaultValue = "MDB-01"
+    )
+
+    loadInput = addEdit(
+        label = "Panel Load (kW)",
+        defaultValue = "350",
+        numeric = true
+    )
+
+    pfInput = addEdit(
+        label = "Power Factor",
+        defaultValue = "0.90",
+        numeric = true
+    )
+
+    voltageInput = addEdit(
+        label = "System Voltage (V)",
+        defaultValue = "400",
+        numeric = true
+    )
+
+    lengthInput = addEdit(
+        label = "Feeder Cable Length (m)",
+        defaultValue = "50",
+        numeric = true
+    )
+
+    addSectionTitle(
+        "SOURCE OF SUPPLY",
+        "Select the source feeding this panel."
+    )
+
+    sourceSpinner = addSpinner(
+        label = "Source Type",
+        values = listOf(
+            "Transformer",
+            "Generator",
+            "Another Panel"
+        )
+    )
+
+    sourceDataContainer =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+    content.addView(
+        sourceDataContainer
+    )
+
+    sourceKvaInput = addDynamicEdit(
+        label = "Source Rating (kVA)",
+        defaultValue = "630"
+    )
+
+    sourceImpedanceInput = addDynamicEdit(
+        label = "Transformer Impedance / Generator Xd'' (%)",
+        defaultValue = "6.0"
+    )
+
+    upstreamIscInput = addDynamicEdit(
+        label = "Upstream Panel Short Circuit (kA)",
+        defaultValue = "25"
+    )
+
+    sourceSpinner.onItemSelectedListener =
+        object : AdapterView.OnItemSelectedListener {
+
+            override fun onNothingSelected(
+                parent: AdapterView<*>?
+            ) {
+                // No UI action required.
+            }
+
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                updateSourceFields(position)
+            }
+        }
+
+    updateSourceFields(
+        sourceSpinner.selectedItemPosition
+    )
+
+    addSectionTitle(
+        "FEEDER CABLE",
+        "Select cable construction and installation method."
+    )
+
+    cableSpinner = addSpinner(
+        label = "Cable Type",
+        values = listOf(
+            "XLPE Copper",
+            "XLPE Aluminium",
+            "PVC Copper",
+            "PVC Aluminium"
+        )
+    )
+
+    installationSpinner = addSpinner(
+        label = "Installation Method",
+        values = InstallationMethod.values().map {
+            readable(it.name)
+        }
+    )
+
+    ambientInput = addEdit(
+        label = "Ambient Correction Factor",
+        defaultValue = "1.00",
+        numeric = true
+    )
+
+    groupingInput = addEdit(
+        label = "Grouping Correction Factor",
+        defaultValue = "1.00",
+        numeric = true
+    )
+
+    voltageDropInput = addEdit(
+        label = "Maximum Voltage Drop (%)",
+        defaultValue = "3.00",
+        numeric = true
+    )
+
+    val calculateButton =
+        Button(this).apply {
+
+            text = "CALCULATE COMPLETE DESIGN"
+            textSize = 15f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.WHITE)
+
+            setBackgroundColor(
+                Color.rgb(21, 101, 192)
+            )
+
+            setOnClickListener {
+                onCalculateClicked()
+            }
+        }
+
+    val buttonParams =
+        LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            dp(58)
+        ).apply {
+            setMargins(
                 0,
-                1f
-            )
-        )
-
-        setContentView(
-            root
-        )
-
-        buildDesignScreen()
-    }
-
-    private fun createHeader(): View {
-
-        val header =
-            LinearLayout(this)
-
-        header.orientation =
-            LinearLayout.VERTICAL
-
-        header.setPadding(
-            dp(20),
-            dp(14),
-            dp(20),
-            dp(14)
-        )
-
-        header.setBackgroundColor(
-            Color.rgb(
-                11,
-                41,
-                66
-            )
-        )
-
-        val title =
-            TextView(this)
-
-        title.text =
-            "⚡ PROFESSIONAL ENGINEERING"
-
-        title.textSize =
-            20f
-
-        title.typeface =
-            Typeface.DEFAULT_BOLD
-
-        title.setTextColor(
-            Color.WHITE
-        )
-
-        header.addView(
-            title
-        )
-
-        val subtitle =
-            TextView(this)
-
-        subtitle.text =
-            "Electrical Design & Calculation System"
-
-        subtitle.textSize =
-            12f
-
-        subtitle.setTextColor(
-            Color.rgb(
-                210,
-                225,
-                235
-            )
-        )
-
-        subtitle.setPadding(
-            0,
-            dp(4),
-            0,
-            0
-        )
-
-        header.addView(
-            subtitle
-        )
-
-        return header
-    }
-
-    private fun buildDesignScreen() {
-
-        content.removeAllViews()
-
-        addSectionTitle(
-            "PANEL DESIGN",
-            "Enter the electrical load in kW."
-        )
-
-        panelNameInput =
-            addEdit(
-                "Panel Name",
-                "MDB-01"
-            )
-
-        loadInput =
-            addEdit(
-                "Panel Load (kW)",
-                "350",
-                true
-            )
-
-        pfInput =
-            addEdit(
-                "Power Factor",
-                "0.90",
-                true
-            )
-
-        voltageInput =
-            addEdit(
-                "System Voltage (V)",
-                "400",
-                true
-            )
-
-        lengthInput =
-            addEdit(
-                "Feeder Cable Length (m)",
-                "50",
-                true
-            )
-
-        addSectionTitle(
-            "SOURCE OF SUPPLY",
-            "Select the source feeding this panel."
-        )
-
-        sourceSpinner =
-            addSpinner(
-                "Source Type",
-                listOf(
-                    "Transformer",
-                    "Generator",
-                    "Another Panel"
-                )
-            )
-
-        sourceDataContainer =
-            LinearLayout(this)
-
-        sourceDataContainer.orientation =
-            LinearLayout.VERTICAL
-
-        content.addView(
-            sourceDataContainer
-        )
-
-        sourceKvaInput =
-            addDynamicEdit(
-                "Source Rating (kVA)",
-                "630",
-                true
-            )
-
-        sourceImpedanceInput =
-            addDynamicEdit(
-                "Transformer Impedance / Generator Xd'' (%)",
-                "6.0",
-                true
-            )
-
-        upstreamIscInput =
-            addDynamicEdit(
-                "Upstream Panel Short Circuit (kA)",
-                "25",
-                true
-            )
-
-        sourceSpinner.setOnItemSelectedListener(
-            object :
-                android.widget.AdapterView.OnItemSelectedListener {
-
-                override fun onNothingSelected(
-                    parent: android.widget.AdapterView<*>?
-                ) {
-                }
-
-                override fun onItemSelected(
-                    parent: android.widget.AdapterView<*>?,
-                    view: View?,
-                    position: Int,
-                    id: Long
-                ) {
-
-                    updateSourceFields(
-                        position
-                    )
-                }
-            }
-        )
-
-        updateSourceFields(
-            0
-        )
-
-        addSectionTitle(
-            "FEEDER CABLE",
-            "Select cable construction and installation method."
-        )
-
-        cableSpinner =
-            addSpinner(
-                "Cable Type",
-                listOf(
-                    "XLPE Copper",
-                    "XLPE Aluminium",
-                    "PVC Copper",
-                    "PVC Aluminium"
-                )
-            )
-
-        installationSpinner =
-            addSpinner(
-                "Installation Method",
-                InstallationMethod.entries.map {
-                    readable(
-                        it.name
-                    )
-                }
-            )
-
-        ambientInput =
-            addEdit(
-                "Ambient Correction Factor",
-                "1.00",
-                true
-            )
-
-        groupingInput =
-            addEdit(
-                "Grouping Correction Factor",
-                "1.00",
-                true
-            )
-
-        voltageDropInput =
-            addEdit(
-                "Maximum Voltage Drop (%)",
-                "3.00",
-                true
-            )
-
-        val calculateButton =
-            Button(this)
-
-        calculateButton.text =
-            "CALCULATE COMPLETE DESIGN"
-
-        calculateButton.textSize =
-            15f
-
-        calculateButton.typeface =
-            Typeface.DEFAULT_BOLD
-
-        calculateButton.setTextColor(
-            Color.WHITE
-        )
-
-        calculateButton.setBackgroundColor(
-            Color.rgb(
-                21,
-                101,
-                192
-            )
-        )
-
-        calculateButton.setOnClickListener {
-            calculateDesign()
-        }
-
-        val buttonParams =
-            LinearLayout.LayoutParams(
-                -1,
-                dp(58)
-            )
-
-        buttonParams.setMargins(
-            0,
-            dp(18),
-            0,
-            dp(14)
-        )
-
-        content.addView(
-            calculateButton,
-            buttonParams
-        )
-
-        resultContainer =
-            LinearLayout(this)
-
-        resultContainer.orientation =
-            LinearLayout.VERTICAL
-
-        content.addView(
-            resultContainer
-        )
-    }
-
-    private fun updateSourceFields(
-        position: Int
-    ) {
-
-        sourceKvaInput.visibility =
-            if (position == 2) {
-                View.GONE
-            } else {
-                View.VISIBLE
-            }
-
-        sourceImpedanceInput.visibility =
-            if (position == 2) {
-                View.GONE
-            } else {
-                View.VISIBLE
-            }
-
-        upstreamIscInput.visibility =
-            if (position == 2) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
-
-        sourceKvaInput.hint =
-            if (position == 0) {
-                "Transformer Rating (kVA)"
-            } else {
-                "Generator Rating (kVA)"
-            }
-
-        sourceImpedanceInput.hint =
-            if (position == 0) {
-                "Transformer Impedance (%)"
-            } else {
-                "Generator Xd'' (%)"
-            }
-    }
-
-    private fun calculateDesign() {
-
-        resultContainer.removeAllViews()
-
-        try {
-
-            val sourceType =
-                when (
-                    sourceSpinner.selectedItemPosition
-                ) {
-
-                    0 ->
-                        PanelSourceType.TRANSFORMER
-
-                    1 ->
-                        PanelSourceType.GENERATOR
-
-                    else ->
-                        PanelSourceType.OTHER_PANEL
-                }
-
-            val cableType =
-                when (
-                    cableSpinner.selectedItemPosition
-                ) {
-
-                    0 ->
-                        CableType.XLPE_COPPER
-
-                    1 ->
-                        CableType.XLPE_ALUMINIUM
-
-                    2 ->
-                        CableType.PVC_COPPER
-
-                    else ->
-                        CableType.PVC_ALUMINIUM
-                }
-
-            val installationMethod =
-                InstallationMethod.entries[
-                    installationSpinner
-                        .selectedItemPosition
-                ]
-
-            val input =
-                PanelDesignInput(
-
-                    panelName =
-                        panelNameInput.text
-                            .toString()
-                            .trim(),
-
-                    loadKw =
-                        number(
-                            loadInput,
-                            "Panel Load"
-                        ),
-
-                    powerFactor =
-                        number(
-                            pfInput,
-                            "Power Factor"
-                        ),
-
-                    voltageV =
-                        number(
-                            voltageInput,
-                            "Voltage"
-                        ),
-
-                    lengthM =
-                        number(
-                            lengthInput,
-                            "Cable Length"
-                        ),
-
-                    sourceType =
-                        sourceType,
-
-                    sourceKva =
-                        if (
-                            sourceType ==
-                            PanelSourceType.OTHER_PANEL
-                        ) {
-                            0.0
-                        } else {
-                            number(
-                                sourceKvaInput,
-                                "Source kVA"
-                            )
-                        },
-
-                    sourceImpedancePercent =
-                        if (
-                            sourceType ==
-                            PanelSourceType.OTHER_PANEL
-                        ) {
-                            0.0
-                        } else {
-                            number(
-                                sourceImpedanceInput,
-                                "Source impedance"
-                            )
-                        },
-
-                    upstreamShortCircuitKA =
-                        if (
-                            sourceType ==
-                            PanelSourceType.OTHER_PANEL
-                        ) {
-                            number(
-                                upstreamIscInput,
-                                "Upstream short circuit"
-                            )
-                        } else {
-                            0.0
-                        },
-
-                    cableType =
-                        cableType,
-
-                    installationMethod =
-                        installationMethod,
-
-                    ambientFactor =
-                        number(
-                            ambientInput,
-                            "Ambient factor"
-                        ),
-
-                    groupingFactor =
-                        number(
-                            groupingInput,
-                            "Grouping factor"
-                        ),
-
-                    targetVoltageDropPercent =
-                        number(
-                            voltageDropInput,
-                            "Voltage drop"
-                        )
-                )
-
-            val result =
-                calculator.calculate(
-                    input
-                )
-
-            showResult(
-                result
-            )
-
-        } catch (
-            exception: Exception
-        ) {
-
-            addResultCard(
-                "DESIGN ERROR",
-                exception.message
-                    ?: "Invalid engineering input."
+                dp(18),
+                0,
+                dp(14)
             )
         }
-    }
 
-    private fun showResult(
-        result: PanelDesignResult
-    ) {
+    content.addView(
+        calculateButton,
+        buttonParams
+    )
 
-        addSectionTitle(
-            "DESIGN RESULTS",
-            "Calculated automatically by ProfessionalEngineeringCore."
-        )
-
-        addResultCard(
-            "LOAD",
-            """
-            Panel: ${result.panelName}
-            
-            Load: ${format1(result.loadKw)} kW
-            
-            Power Factor: ${format2(result.powerFactor)}
-            
-            Design Current: ${format1(result.designCurrentA)} A
-            
-            Voltage: ${format1(result.voltageV)} V
-            """.trimIndent()
-        )
-
-        addResultCard(
-            "SOURCE",
-            """
-            Source: ${sourceName(result.sourceType)}
-            
-            Required Capacity: ${format1(result.sourceRequiredKva)} kVA
-            
-            Recommended Capacity: ${format1(result.sourceRecommendedKva)} kVA
-            
-            Source Current: ${format1(result.sourceCurrentA)} A
-            """.trimIndent()
-        )
-
-        addResultCard(
-            "FEEDER CABLE",
-            """
-            Cable: ${result.cableDescription}
-            
-            Selected Size: ${format1(result.cableSizeMm2)} mm²
-            
-            Ampacity: ${format1(result.cableAmpacityA)} A
-            
-            Voltage Drop: ${format2(result.voltageDropPercent)} %
-            """.trimIndent()
-        )
-
-        addResultCard(
-            "PROTECTION",
-            """
-            Main Breaker: ${format1(result.breakerRatingA)} A
-            
-            Required Breaking Capacity: ${format1(result.breakerBreakingCapacityKA)} kA
-            
-            Load Current: ${format1(result.designCurrentA)} A
-            """.trimIndent()
-        )
-
-        addResultCard(
-            "SHORT CIRCUIT",
-            """
-            Panel Short Circuit: ${format2(result.shortCircuitKA)} kA
-            
-            Fault Level: ${format2(result.faultMva)} MVA
-            """.trimIndent()
-        )
-
-        addSectionTitle(
-            "SINGLE LINE DIAGRAM",
-            "Electrical SLD generated from the calculated design."
-        )
-
-        val sldView =
-            SldDiagramView(this)
-
-        sldView.setDiagram(
-            result.sld
-        )
-
-        val sldParams =
-            LinearLayout.LayoutParams(
-                -1,
-                dp(
-                    210 *
-                        result.sld.nodes.size +
-                        120
-                )
-            )
-
-        sldParams.setMargins(
-            0,
-            dp(8),
-            0,
-            dp(20)
-        )
-
-        resultContainer.addView(
-            sldView,
-            sldParams
-        )
-    }
-
-    private fun sourceName(
-        sourceType: PanelSourceType
-    ): String {
-
-        return when (sourceType) {
-
-            PanelSourceType.TRANSFORMER ->
-                "Transformer"
-
-            PanelSourceType.GENERATOR ->
-                "Generator"
-
-            PanelSourceType.OTHER_PANEL ->
-                "Another Panel"
+    resultContainer =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
         }
-    }
 
-    private fun addSectionTitle(
-        title: String,
-        subtitle: String
+    content.addView(
+        resultContainer
+    )
+}
+
+private fun updateSourceFields(
+    position: Int
+) {
+
+    val anotherPanel =
+        position ==
+            SOURCE_ANOTHER_PANEL
+
+    sourceKvaInput.visibility =
+        if (anotherPanel) {
+            View.GONE
+        } else {
+            View.VISIBLE
+        }
+
+    sourceImpedanceInput.visibility =
+        if (anotherPanel) {
+            View.GONE
+        } else {
+            View.VISIBLE
+        }
+
+    upstreamIscInput.visibility =
+        if (anotherPanel) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
+
+    sourceKvaInput.hint =
+        if (position == SOURCE_TRANSFORMER) {
+            "Transformer Rating (kVA)"
+        } else {
+            "Generator Rating (kVA)"
+        }
+
+    sourceImpedanceInput.hint =
+        if (position == SOURCE_TRANSFORMER) {
+            "Transformer Impedance (%)"
+        } else {
+            "Generator Xd'' (%)"
+        }
+}
+
+/**
+ * UI layer only.
+ *
+ * Reads fields and creates the engineering input model.
+ * No electrical formula is implemented here.
+ */
+private fun onCalculateClicked() {
+
+    resultContainer.removeAllViews()
+
+    try {
+
+        val input =
+            createPanelDesignInputFromUi()
+
+        val result =
+            core.calculatePanelDesign(
+                input
+            )
+
+        renderResult(
+            result
+        )
+
+    } catch (exception: Exception) {
+
+        addResultCard(
+            "INPUT / DESIGN ERROR",
+            exception.message
+                ?: "Unable to complete the design."
+        )
+    }
+}
+
+/**
+ * UI-to-model mapping only.
+ *
+ * Engineering calculations are performed by
+ * ProfessionalEngineeringCore.
+ */
+private fun createPanelDesignInputFromUi():
+    PanelDesignInput {
+
+    return PanelDesignInput(
+
+        panelName =
+            panelNameInput.text
+                .toString()
+                .trim(),
+
+        loadKw =
+            readDouble(
+                loadInput,
+                "Panel Load"
+            ),
+
+        powerFactor =
+            readDouble(
+                pfInput,
+                "Power Factor"
+            ),
+
+        voltageV =
+            readDouble(
+                voltageInput,
+                "System Voltage"
+            ),
+
+        lengthM =
+            readDouble(
+                lengthInput,
+                "Cable Length"
+            ),
+
+        sourceType =
+            selectedSourceType(),
+
+        sourceKva =
+            readDoubleOrZero(
+                sourceKvaInput
+            ),
+
+        sourceImpedancePercent =
+            readDoubleOrZero(
+                sourceImpedanceInput
+            ),
+
+        upstreamShortCircuitKA =
+            readDoubleOrZero(
+                upstreamIscInput
+            ),
+
+        cableType =
+            selectedCableType(),
+
+        installationMethod =
+            selectedInstallationMethod(),
+
+        ambientFactor =
+            readDouble(
+                ambientInput,
+                "Ambient Correction Factor"
+            ),
+
+        groupingFactor =
+            readDouble(
+                groupingInput,
+                "Grouping Correction Factor"
+            ),
+
+        targetVoltageDropPercent =
+            readDouble(
+                voltageDropInput,
+                "Maximum Voltage Drop"
+            )
+    )
+}
+
+private fun selectedSourceType():
+    PanelSourceType {
+
+    return when (
+        sourceSpinner.selectedItemPosition
     ) {
 
-        val titleView =
-            TextView(this)
+        SOURCE_TRANSFORMER ->
+            PanelSourceType.TRANSFORMER
 
-        titleView.text =
-            title
+        SOURCE_GENERATOR ->
+            PanelSourceType.GENERATOR
 
-        titleView.textSize =
-            18f
-
-        titleView.typeface =
-            Typeface.DEFAULT_BOLD
-
-        titleView.setTextColor(
-            Color.rgb(
-                11,
-                65,
-                105
-            )
-        )
-
-        titleView.setPadding(
-            dp(4),
-            dp(14),
-            dp(4),
-            dp(3)
-        )
-
-        content.addView(
-            titleView
-        )
-
-        val subtitleView =
-            TextView(this)
-
-        subtitleView.text =
-            subtitle
-
-        subtitleView.textSize =
-            11f
-
-        subtitleView.setTextColor(
-            Color.rgb(
-                90,
-                105,
-                120
-            )
-        )
-
-        subtitleView.setPadding(
-            dp(4),
-            0,
-            dp(4),
-            dp(8)
-        )
-
-        content.addView(
-            subtitleView
-        )
+        else ->
+            PanelSourceType.OTHER_PANEL
     }
+}
 
-    private fun addEdit(
-        label: String,
-        defaultValue: String,
-        numeric: Boolean = false
-    ): EditText {
+private fun selectedCableType():
+    CableType {
 
-        val field =
-            EditText(this)
+    return when (
+        cableSpinner.selectedItemPosition
+    ) {
 
-        field.hint =
-            label
+        CABLE_XLPE_COPPER ->
+            CableType.XLPE_COPPER
 
-        field.setText(
-            defaultValue
+        CABLE_XLPE_ALUMINIUM ->
+            CableType.XLPE_ALUMINIUM
+
+        CABLE_PVC_COPPER ->
+            CableType.PVC_COPPER
+
+        else ->
+            CableType.PVC_ALUMINIUM
+    }
+}
+
+private fun selectedInstallationMethod():
+    InstallationMethod {
+
+    val methods =
+        InstallationMethod.values()
+
+    val position =
+        installationSpinner
+            .selectedItemPosition
+            .coerceIn(
+                0,
+                methods.lastIndex
+            )
+
+    return methods[position]
+}
+
+private fun renderResult(
+    result: PanelDesignResult
+) {
+
+    addSectionTitle(
+        "DESIGN RESULTS",
+        "Results returned by ProfessionalEngineeringCore."
+    )
+
+    addResultCard(
+        "LOAD",
+        """
+        Panel: ${result.panelName}
+        
+        Load: ${result.loadKw} kW
+        
+        Power Factor: ${result.powerFactor}
+        
+        Design Current: ${result.designCurrentA} A
+        
+        Voltage: ${result.voltageV} V
+        """.trimIndent()
+    )
+
+    addResultCard(
+        "SOURCE",
+        """
+        Source: ${sourceName(result.sourceType)}
+        
+        Required Capacity: ${result.sourceRequiredKva} kVA
+        
+        Recommended Capacity: ${result.sourceRecommendedKva} kVA
+        
+        Source Current: ${result.sourceCurrentA} A
+        """.trimIndent()
+    )
+
+    addResultCard(
+        "FEEDER CABLE",
+        """
+        Cable: ${result.cableDescription}
+        
+        Selected Size: ${result.cableSizeMm2} mm²
+        
+        Ampacity: ${result.cableAmpacityA} A
+        
+        Voltage Drop: ${result.voltageDropPercent} %
+        """.trimIndent()
+    )
+
+    addResultCard(
+        "PROTECTION",
+        """
+        Main Breaker: ${result.breakerRatingA} A
+        
+        Breaking Capacity: ${result.breakerBreakingCapacityKA} kA
+        
+        Load Current: ${result.designCurrentA} A
+        """.trimIndent()
+    )
+
+    addResultCard(
+        "SHORT CIRCUIT",
+        """
+        Panel Short Circuit: ${result.shortCircuitKA} kA
+        
+        Fault Level: ${result.faultMva} MVA
+        """.trimIndent()
+    )
+
+    addSectionTitle(
+        "SINGLE LINE DIAGRAM",
+        "SLD generated by the engineering core."
+    )
+
+    val sldView =
+        SldDiagramView(this)
+
+    sldView.setDiagram(
+        result.sld
+    )
+
+    val nodeCount =
+        result.sld.nodes.size.coerceAtLeast(1)
+
+    val sldHeight =
+        dp(
+            Sld_BASE_HEIGHT +
+                Sld_NODE_HEIGHT *
+                    nodeCount
         )
 
-        field.textSize =
-            14f
+    val sldParams =
+        LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            sldHeight
+        ).apply {
+            setMargins(
+                0,
+                dp(8),
+                0,
+                dp(20)
+            )
+        }
 
-        field.setSingleLine(
-            true
-        )
+    resultContainer.addView(
+        sldView,
+        sldParams
+    )
+}
 
-        field.setPadding(
-            dp(12),
-            dp(4),
-            dp(12),
-            dp(4)
-        )
+private fun sourceName(
+    sourceType: PanelSourceType
+): String {
 
-        if (numeric) {
+    return when (sourceType) {
 
-            field.inputType =
+        PanelSourceType.TRANSFORMER ->
+            "Transformer"
+
+        PanelSourceType.GENERATOR ->
+            "Generator"
+
+        PanelSourceType.OTHER_PANEL ->
+            "Another Panel"
+    }
+}
+
+private fun addSectionTitle(
+    title: String,
+    subtitle: String
+) {
+
+    val titleView =
+        TextView(this).apply {
+
+            text = title
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+
+            setTextColor(
+                Color.rgb(11, 65, 105)
+            )
+
+            setPadding(
+                dp(4),
+                dp(14),
+                dp(4),
+                dp(3)
+            )
+        }
+
+    content.addView(
+        titleView
+    )
+
+    val subtitleView =
+        TextView(this).apply {
+
+            text = subtitle
+            textSize = 11f
+
+            setTextColor(
+                Color.rgb(90, 105, 120)
+            )
+
+            setPadding(
+                dp(4),
+                0,
+                dp(4),
+                dp(8)
+            )
+        }
+
+    content.addView(
+        subtitleView
+    )
+}
+
+private fun addEdit(
+    label: String,
+    defaultValue: String,
+    numeric: Boolean = false
+): EditText {
+
+    val field =
+        EditText(this).apply {
+
+            hint = label
+            setText(defaultValue)
+            textSize = 14f
+            setSingleLine(true)
+
+            setPadding(
+                dp(12),
+                dp(4),
+                dp(12),
+                dp(4)
+            )
+
+            if (numeric) {
+                inputType =
+                    InputType.TYPE_CLASS_NUMBER or
+                        InputType.TYPE_NUMBER_FLAG_DECIMAL
+            }
+        }
+
+    val params =
+        LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            dp(55)
+        ).apply {
+            setMargins(
+                0,
+                dp(3),
+                0,
+                dp(3)
+            )
+        }
+
+    content.addView(
+        field,
+        params
+    )
+
+    return field
+}
+
+private fun addDynamicEdit(
+    label: String,
+    defaultValue: String
+): EditText {
+
+    val field =
+        EditText(this).apply {
+
+            hint = label
+            setText(defaultValue)
+            textSize = 14f
+            setSingleLine(true)
+
+            inputType =
                 InputType.TYPE_CLASS_NUMBER or
                     InputType.TYPE_NUMBER_FLAG_DECIMAL
+
+            setPadding(
+                dp(12),
+                dp(4),
+                dp(12),
+                dp(4)
+            )
         }
 
-        val params =
-            LinearLayout.LayoutParams(
-                -1,
-                dp(55)
+    val params =
+        LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            dp(55)
+        ).apply {
+            setMargins(
+                0,
+                dp(3),
+                0,
+                dp(3)
             )
-
-        params.setMargins(
-            0,
-            dp(3),
-            0,
-            dp(3)
-        )
-
-        content.addView(
-            field,
-            params
-        )
-
-        return field
-    }
-
-    private fun addDynamicEdit(
-        label: String,
-        defaultValue: String,
-        numeric: Boolean
-    ): EditText {
-
-        val field =
-            EditText(this)
-
-        field.hint =
-            label
-
-        field.setText(
-            defaultValue
-        )
-
-        field.textSize =
-            14f
-
-        field.setSingleLine(
-            true
-        )
-
-        field.setPadding(
-            dp(12),
-            dp(4),
-            dp(12),
-            dp(4)
-        )
-
-        if (numeric) {
-
-            field.inputType =
-                InputType.TYPE_CLASS_NUMBER or
-                    InputType.TYPE_NUMBER_FLAG_DECIMAL
         }
 
-        val params =
-            LinearLayout.LayoutParams(
-                -1,
-                dp(55)
+    sourceDataContainer.addView(
+        field,
+        params
+    )
+
+    return field
+}
+
+private fun addSpinner(
+    label: String,
+    values: List<String>
+): Spinner {
+
+    val spinner =
+        Spinner(this)
+
+    val adapter =
+        ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            values
+        )
+
+    adapter.setDropDownViewResource(
+        android.R.layout.simple_spinner_dropdown_item
+    )
+
+    spinner.adapter =
+        adapter
+
+    spinner.contentDescription =
+        label
+
+    val params =
+        LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            dp(55)
+        ).apply {
+            setMargins(
+                0,
+                dp(3),
+                0,
+                dp(3)
+            )
+        }
+
+    content.addView(
+        spinner,
+        params
+    )
+
+    return spinner
+}
+
+private fun addResultCard(
+    title: String,
+    text: String
+) {
+
+    val card =
+        LinearLayout(this).apply {
+
+            orientation =
+                LinearLayout.VERTICAL
+
+            setBackgroundColor(
+                Color.WHITE
             )
 
-        params.setMargins(
-            0,
-            dp(3),
-            0,
-            dp(3)
-        )
+            setPadding(
+                dp(15),
+                dp(12),
+                dp(15),
+                dp(12)
+            )
+        }
 
-        sourceDataContainer.addView(
-            field,
-            params
-        )
+    card.addView(
+        TextView(this).apply {
 
-        return field
-    }
+            this.text = title
+            textSize = 14f
+            typeface = Typeface.DEFAULT_BOLD
 
-    private fun addSpinner(
-        label: String,
-        values: List<String>
-    ): Spinner {
+            setTextColor(
+                Color.rgb(15, 75, 120)
+            )
+        }
+    )
 
-        val spinner =
-            Spinner(this)
+    card.addView(
+        TextView(this).apply {
 
-        val adapter =
-            ArrayAdapter(
-                this,
-                android.R.layout.simple_spinner_item,
-                values
+            this.text = text
+            textSize = 13f
+
+            setTextColor(
+                Color.rgb(45, 55, 65)
             )
 
-        adapter.setDropDownViewResource(
-            android.R.layout.simple_spinner_dropdown_item
-        )
-
-        spinner.adapter =
-            adapter
-
-        spinner.contentDescription =
-            label
-
-        val params =
-            LinearLayout.LayoutParams(
-                -1,
-                dp(55)
+            setPadding(
+                0,
+                dp(7),
+                0,
+                0
             )
+        }
+    )
 
-        params.setMargins(
-            0,
-            dp(3),
-            0,
-            dp(3)
-        )
-
-        content.addView(
-            spinner,
-            params
-        )
-
-        return spinner
-    }
-
-    private fun addResultCard(
-        title: String,
-        text: String
-    ) {
-
-        val card =
-            LinearLayout(this)
-
-        card.orientation =
-            LinearLayout.VERTICAL
-
-        card.setBackgroundColor(
-            Color.WHITE
-        )
-
-        card.setPadding(
-            dp(15),
-            dp(12),
-            dp(15),
-            dp(12)
-        )
-
-        val titleView =
-            TextView(this)
-
-        titleView.text =
-            title
-
-        titleView.textSize =
-            14f
-
-        titleView.typeface =
-            Typeface.DEFAULT_BOLD
-
-        titleView.setTextColor(
-            Color.rgb(
-                15,
-                75,
-                120
+    val params =
+        LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            setMargins(
+                0,
+                dp(5),
+                0,
+                dp(6)
             )
-        )
+        }
 
-        card.addView(
-            titleView
-        )
+    resultContainer.addView(
+        card,
+        params
+    )
+}
 
-        val valueView =
-            TextView(this)
+private fun readDouble(
+    field: EditText,
+    fieldName: String
+): Double {
 
-        valueView.text =
-            text
-
-        valueView.textSize =
-            13f
-
-        valueView.setTextColor(
-            Color.rgb(
-                45,
-                55,
-                65
-            )
-        )
-
-        valueView.setPadding(
-            0,
-            dp(7),
-            0,
-            0
-        )
-
-        card.addView(
-            valueView
-        )
-
-        val params =
-            LinearLayout.LayoutParams(
-                -1,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-
-        params.setMargins(
-            0,
-            dp(5),
-            0,
-            dp(6)
-        )
-
-        resultContainer.addView(
-            card,
-            params
-        )
-    }
-
-    private fun number(
-        field: EditText,
-        name: String
-    ): Double {
-
-        return field.text
+    val value =
+        field.text
             .toString()
             .trim()
             .toDoubleOrNull()
-            ?: throw IllegalArgumentException(
-                "$name is not a valid number."
-            )
+
+    require(value != null) {
+        "$fieldName must be a valid number."
     }
 
-    private fun format1(
-        value: Double
-    ): String =
-        "%.1f".format(
-            value
+    return value
+}
+
+private fun readDoubleOrZero(
+    field: EditText
+): Double {
+
+    return field.text
+        .toString()
+        .trim()
+        .toDoubleOrNull()
+        ?: 0.0
+}
+
+private fun readable(
+    value: String
+): String {
+
+    return value
+        .lowercase()
+        .replace(
+            "_",
+            " "
         )
+        .replaceFirstChar {
+            it.uppercase()
+        }
+}
 
-    private fun format2(
-        value: Double
-    ): String =
-        "%.2f".format(
-            value
-        )
+private fun dp(
+    value: Int
+): Int {
 
-    private fun readable(
-        value: String
-    ): String {
+    return (
+        value *
+            resources.displayMetrics.density
+        ).toInt()
+}
 
-        return value
-            .lowercase()
-            .replace(
-                "_",
-                " "
-            )
-            .replaceFirstChar {
-                it.uppercase()
-            }
-    }
+companion object {
 
-    private fun dp(
-        value: Int
-    ): Int {
+    private const val SOURCE_TRANSFORMER = 0
+    private const val SOURCE_GENERATOR = 1
+    private const val SOURCE_ANOTHER_PANEL = 2
 
-        return (
-            value *
-                resources.displayMetrics.density
-            ).toInt()
-    }
+    private const val CABLE_XLPE_COPPER = 0
+    private const val CABLE_XLPE_ALUMINIUM = 1
+    private const val CABLE_PVC_COPPER = 2
+    private const val CABLE_PVC_ALUMINIUM = 3
+
+    private const val SLD_BASE_HEIGHT = 180
+    private const val SLD_NODE_HEIGHT = 190
+}
+
 }
