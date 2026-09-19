@@ -19,6 +19,8 @@ import com.electricalengineeringpro.app.core.calculation.ShortCircuitCalculator
 import com.electricalengineeringpro.app.core.calculation.TransformerCalculator
 import com.electricalengineeringpro.app.core.calculation.TransformerSizingCalculator
 import com.electricalengineeringpro.app.core.calculation.VoltageDropCalculator
+import com.electricalengineeringpro.app.core.model.PanelDesignInput
+import com.electricalengineeringpro.app.core.model.PanelDesignResult
 import com.electricalengineeringpro.app.core.sld.SldGenerator
 
 /**
@@ -26,9 +28,10 @@ import com.electricalengineeringpro.app.core.sld.SldGenerator
  *
  * THE SINGLE ENGINEERING CALCULATION CORE.
  *
- * All engineering calculations are exposed through this facade.
+ * This class is the single public entry point for
+ * all engineering calculations used by the application.
  *
- * UI must never create independent calculation engines.
+ * UI classes must not implement engineering formulas.
  */
 class ProfessionalEngineeringCore private constructor() {
 
@@ -94,12 +97,11 @@ class ProfessionalEngineeringCore private constructor() {
             breakerSelectionCalculator = breakerSelection
         )
 
-    /**
-     * Complete panel feeder design.
-     *
-     * This is still part of ProfessionalEngineeringCore.
+    /*
+     * Panel design remains inside the single
+     * ProfessionalEngineeringCore architecture.
      */
-    val panelDesign =
+    private val panelDesignCalculator =
         PanelDesignCalculator(
             cableCalculator = cable,
             breakerCalculator = breakerSelection,
@@ -109,10 +111,27 @@ class ProfessionalEngineeringCore private constructor() {
     val sld =
         SldGenerator()
 
+    /**
+     * Single public entry point for complete
+     * panel feeder engineering design.
+     *
+     * All engineering calculations are delegated
+     * to PanelDesignCalculator.
+     */
+    fun calculatePanelDesign(
+        input: PanelDesignInput
+    ): PanelDesignResult {
+
+        return panelDesignCalculator.calculate(
+            input
+        )
+    }
+
     companion object {
 
-        val instance: ProfessionalEngineeringCore by lazy {
-            ProfessionalEngineeringCore()
-        }
+        val instance:
+            ProfessionalEngineeringCore by lazy {
+                ProfessionalEngineeringCore()
+            }
     }
 }
