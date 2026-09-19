@@ -12,7 +12,7 @@
         android:theme="@style/Theme.ElectricalEngineeringPro">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".core.MainActivity"
             android:exported="true">
 
             <intent-filter>
