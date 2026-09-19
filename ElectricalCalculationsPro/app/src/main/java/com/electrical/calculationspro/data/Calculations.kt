@@ -1,24 +1,57 @@
 package com.electrical.calculationspro.data
 
+import android.content.Context
 import com.electricalengineeringpro.app.core.ProfessionalEngineeringCore
 import com.electricalengineeringpro.app.core.model.CableInput
-import com.electricalengineeringpro.app.core.model.CableResult
 import com.electricalengineeringpro.app.core.model.ConductorMaterial as CoreConductorMaterial
+import com.electricalengineeringpro.app.core.model.CableInsulation
 import com.electricalengineeringpro.app.core.model.Phase
-import com.electricalengineeringpro.app.core.model.ShortCircuitInput
-import kotlin.math.sqrt
 
-/**
- * Compatibility adapter only.
- *
- * No engineering formulas are implemented here.
- * All engineering calculations are delegated to
- * ProfessionalEngineeringCore.
- */
 object ElectricalCalculations {
 
     private val core =
         ProfessionalEngineeringCore.instance
+
+    private fun phase(
+        currentType: CurrentType
+    ): Phase =
+        when (currentType) {
+            CurrentType.AlternatingThreePhase ->
+                Phase.THREE
+
+            CurrentType.AlternatingSinglePhase,
+            CurrentType.AlternatingTwoPhase,
+            CurrentType.DirectCurrent ->
+                Phase.SINGLE
+        }
+
+    private fun material(
+        value: ConductorMaterial
+    ): CoreConductorMaterial =
+        when (value) {
+            ConductorMaterial.Copper ->
+                CoreConductorMaterial.COPPER
+
+            ConductorMaterial.Aluminum ->
+                CoreConductorMaterial.ALUMINIUM
+        }
+
+    private fun insulation(
+        value: InsulationType
+    ): CableInsulation =
+        when (value) {
+            InsulationType.PVC ->
+                CableInsulation.PVC
+
+            InsulationType.XLPE ->
+                CableInsulation.XLPE
+
+            InsulationType.EPR ->
+                CableInsulation.EPR
+
+            InsulationType.Rubber ->
+                CableInsulation.PVC
+        }
 
     fun calculateDesignCurrent(
         loadWatts: Double,
@@ -31,31 +64,14 @@ object ElectricalCalculations {
         require(voltage > 0.0)
         require(powerFactor in 0.01..1.0)
 
-        return when (currentType) {
-
-            CurrentType.DirectCurrent ->
-                loadWatts / voltage
-
-            CurrentType.AlternatingSinglePhase ->
-                core.power.fromKw(
-                    powerKw = loadWatts / 1000.0,
-                    voltage = voltage,
-                    powerFactor = powerFactor,
-                    phase = Phase.SINGLE
-                ).currentA
-
-            CurrentType.AlternatingTwoPhase ->
-                loadWatts /
-                    (2.0 * voltage * powerFactor)
-
-            CurrentType.AlternatingThreePhase ->
-                core.power.fromKw(
-                    powerKw = loadWatts / 1000.0,
-                    voltage = voltage,
-                    powerFactor = powerFactor,
-                    phase = Phase.THREE
-                ).currentA
-        }
+        return core.power
+            .fromKw(
+                powerKw = loadWatts / 1000.0,
+                voltage = voltage,
+                powerFactor = powerFactor,
+                phase = phase(currentType)
+            )
+            .currentA
     }
 
     fun applyDemandAndDiversity(
@@ -66,11 +82,15 @@ object ElectricalCalculations {
 
         require(ib >= 0.0)
         require(demandFactor in 0.0..1.0)
-        require(diversityFactor in 0.0..1.0)
+        require(diversityFactor > 0.0)
 
-        return ib *
-            demandFactor *
-            diversityFactor
+        return core.loads
+            .applyFactors(
+                connectedPowerKw = ib,
+                demandFactor = demandFactor,
+                diversityFactor = diversityFactor
+            )
+            .demandKw
     }
 
     fun calculateVoltageDrop(
@@ -83,124 +103,29 @@ object ElectricalCalculations {
         voltage: Double
     ): Pair<Double, Double> {
 
-        val phase =
-            when (currentType) {
-                CurrentType.AlternatingThreePhase ->
-                    Phase.THREE
-
-                CurrentType.AlternatingSinglePhase ->
-                    Phase.SINGLE
-
-                CurrentType.AlternatingTwoPhase ->
-                    Phase.SINGLE
-
-                CurrentType.DirectCurrent ->
-                    Phase.SINGLE
-            }
+        require(current >= 0.0)
+        require(length >= 0.0)
+        require(sectionMm2 > 0.0)
+        require(voltage > 0.0)
+        require(powerFactor in 0.01..1.0)
 
         val result =
             core.voltageDrop.calculate(
                 currentA = current,
                 lengthM = length,
-                voltageV = voltage,
+                resistanceOhmPerKm =
+                    if (material == ConductorMaterial.Copper)
+                        12.1 / sectionMm2
+                    else
+                        18.1 / sectionMm2,
+                reactanceOhmPerKm = 0.08,
+                voltage = voltage,
                 powerFactor = powerFactor,
-                phase = phase,
-                material =
-                    when (material) {
-                        ConductorMaterial.Copper ->
-                            CoreConductorMaterial.COPPER
-
-                        ConductorMaterial.Aluminum ->
-                            CoreConductorMaterial.ALUMINIUM
-                    }
+                phase = phase(currentType),
+                maximumPercent = Double.MAX_VALUE
             )
 
-        return result.dropPercent to
-            result.dropVolts
-    }
-
-    fun calculateShortCircuitCurrent(
-        voltage: Double,
-        length: Double,
-        sectionMm2: Double,
-        material: ConductorMaterial,
-        currentType: CurrentType,
-        sourceIkKA: Double
-    ): ShortCircuitResult {
-
-        require(sourceIkKA > 0.0) {
-            "Source short-circuit current is required."
-        }
-
-        val phase =
-            when (currentType) {
-                CurrentType.AlternatingThreePhase ->
-                    Phase.THREE
-
-                else ->
-                    Phase.SINGLE
-            }
-
-        val cableMaterial =
-            when (material) {
-                ConductorMaterial.Copper ->
-                    CoreConductorMaterial.COPPER
-
-                ConductorMaterial.Aluminum ->
-                    CoreConductorMaterial.ALUMINIUM
-            }
-
-        /*
-         * Core short-circuit calculation requires
-         * actual source/transformer data.
-         *
-         * Legacy cable-only compatibility is retained
-         * without introducing a new engineering engine.
-         */
-        val sourceMva =
-            sqrt(3.0) *
-                voltage *
-                sourceIkKA *
-                1000.0 /
-                1_000_000.0
-
-        val result =
-            core.shortCircuit.calculate(
-                ShortCircuitInput(
-                    sourceVoltage = voltage,
-                    transformerKva =
-                        sourceMva * 1000.0,
-                    transformerImpedancePercent = 5.0,
-                    sourceShortCircuitMva =
-                        sourceMva
-                )
-            )
-
-        return ShortCircuitResult(
-            ikAmps =
-                result.faultCurrentKA * 1000.0,
-
-            ikKA =
-                result.faultCurrentKA,
-
-            cableImpedance = 0.0,
-
-            sourceImpedance = 0.0,
-
-            i2t =
-                result.faultCurrentKA *
-                    result.faultCurrentKA *
-                    1_000_000.0 *
-                    0.1,
-
-            notes =
-                listOf(
-                    "Ik = %.2f kA"
-                        .format(
-                            result.faultCurrentKA
-                        )
-                )
-        )
+        return result.dropPercent to result.dropVolts
     }
 
     fun sizeConductor(
@@ -210,67 +135,112 @@ object ElectricalCalculations {
         diversityFactor: Double = 1.0
     ): ConductorSizingResult {
 
-        val phase =
-            when (input.currentType) {
-                CurrentType.AlternatingThreePhase ->
-                    Phase.THREE
+        require(standard == Standard.IEC ||
+                standard == Standard.EGYPTIAN ||
+                standard == Standard.CEI ||
+                standard == Standard.NEC ||
+                standard == Standard.CEC)
 
-                else ->
-                    Phase.SINGLE
-            }
-
-        val material =
-            when (input.conductor) {
-                ConductorMaterial.Copper ->
-                    CoreConductorMaterial.COPPER
-
-                ConductorMaterial.Aluminum ->
-                    CoreConductorMaterial.ALUMINIUM
-            }
-
-        val cableInput =
-            CableInput(
-                designCurrentA =
-                    calculateDesignCurrent(
-                        loadWatts =
-                            input.load,
-                        voltage =
-                            input.voltage,
-                        powerFactor =
-                            input.powerFactor,
-                        currentType =
-                            input.currentType
-                    ) *
-                        demandFactor *
-                        diversityFactor,
-
-                lengthM =
-                    input.lineLength,
-
-                voltage =
-                    input.voltage,
-
-                powerFactor =
-                    input.powerFactor,
-
-                phase =
-                    phase,
-
-                material =
-                    material,
-
-                targetVoltageDropPercent =
-                    input.maxVoltageDrop
+        val designCurrent =
+            calculateDesignCurrent(
+                loadWatts = input.load * 1000.0,
+                voltage = input.voltage,
+                powerFactor = input.powerFactor,
+                currentType = input.currentType
             )
+
+        val adjustedCurrent =
+            core.loads
+                .applyFactors(
+                    connectedPowerKw = input.load,
+                    demandFactor = demandFactor,
+                    diversityFactor = diversityFactor
+                )
+                .demandKw
+
+        val finalCurrent =
+            if (designCurrent > 0.0)
+                designCurrent *
+                    (adjustedCurrent /
+                        input.load.coerceAtLeast(0.000001))
+            else
+                0.0
+
+        require(finalCurrent > 0.0) {
+            "Design current must be greater than zero."
+        }
 
         val result =
             core.cable.calculate(
-                cableInput
+                CableInput(
+                    designCurrentA = finalCurrent,
+                    lengthM = input.lineLength,
+                    voltage = input.voltage,
+                    powerFactor = input.powerFactor,
+                    phase = phase(input.currentType),
+                    material = material(input.conductor),
+                    insulation = insulation(input.insulation),
+                    installationMethod =
+                        when {
+                            input.installationMethod.code
+                                .contains("BUR", true) ->
+                                com.electricalengineeringpro.app.core.model.InstallationMethod.BURIED
+
+                            input.installationMethod.code
+                                .contains("FREE", true) ->
+                                com.electricalengineeringpro.app.core.model.InstallationMethod.FREE_AIR
+
+                            input.installationMethod.code
+                                .contains("DUCT", true) ->
+                                com.electricalengineeringpro.app.core.model.InstallationMethod.DUCT
+
+                            input.installationMethod.code
+                                .contains("LAD", true) ->
+                                com.electricalengineeringpro.app.core.model.InstallationMethod.LADDER
+
+                            else ->
+                                com.electricalengineeringpro.app.core.model.InstallationMethod.TRAY
+                        },
+                    ambientFactor = 1.0,
+                    groupingFactor = 1.0,
+                    targetVoltageDropPercent =
+                        input.maxVoltageDrop
+                )
             )
 
-        return mapCableResult(
-            result = result,
-            input = input
+        val breaker =
+            core.breakerSelection.calculate(
+                com.electricalengineeringpro.app.core.calculation.BreakerSelectionInput(
+                    loadCurrentA = finalCurrent
+                )
+            )
+
+        return ConductorSizingResult(
+            designCurrent = finalCurrent,
+            recommendedSection = result.selectedSizeMm2,
+            selectedSection = result.selectedSizeMm2,
+            ampacity = result.ampacityA,
+            voltageDropPercent =
+                result.voltageDropPercent,
+            voltageDropVolts =
+                result.voltageDropPercent *
+                    input.voltage / 100.0,
+            protectiveDevice =
+                breaker.recommendedRatingA,
+            shortCircuitCurrentKA = 0.0,
+            breakerWithinCableCapacity =
+                breaker.recommendedRatingA <=
+                    result.ampacityA,
+            voltageDropWithinLimit =
+                result.voltageDropPercent <=
+                    input.maxVoltageDrop,
+            notes = listOf(
+                "ProfessionalEngineeringCore",
+                "Power unit: kW",
+                "Cable size: ${result.selectedSizeMm2} mm²",
+                "Ampacity: ${result.ampacityA} A",
+                "Voltage drop: ${result.voltageDropPercent} %"
+            )
         )
     }
 
@@ -282,20 +252,16 @@ object ElectricalCalculations {
         diversityFactor: Double = 1.0
     ): ConductorSizingResult {
 
-        val result =
+        val calculated =
             sizeConductor(
-                input = input.copy(
-                    lineLength =
-                        input.lineLength
-                ),
+                input = input,
                 standard = standard,
                 demandFactor = demandFactor,
                 diversityFactor = diversityFactor
             )
 
-        return result.copy(
-            selectedSection =
-                selectedSection
+        return calculated.copy(
+            selectedSection = selectedSection
         )
     }
 
@@ -308,19 +274,32 @@ object ElectricalCalculations {
 
         require(voltage > 0.0)
         require(current >= 0.0)
-        require(pf in 0.01..1.0)
+        require(pf in 0.0..1.0)
+        require(phases > 0)
 
-        return if (phases == 3) {
-            sqrt(3.0) *
-                voltage *
-                current *
-                pf /
-                1000.0
-        } else {
-            voltage *
-                current *
-                pf /
-                1000.0
+        return when (phases) {
+            3 ->
+                core.power.fromKva(
+                    kva =
+                        kotlin.math.sqrt(3.0) *
+                            voltage *
+                            current /
+                            1000.0,
+                    voltage = voltage,
+                    powerFactor = pf,
+                    phase = Phase.THREE
+                ).activePowerKw
+
+            else ->
+                core.power.fromKva(
+                    kva =
+                        voltage *
+                            current /
+                            1000.0,
+                    voltage = voltage,
+                    powerFactor = pf,
+                    phase = Phase.SINGLE
+                ).activePowerKw
         }
     }
 
@@ -334,7 +313,7 @@ object ElectricalCalculations {
         require(current >= 0.0)
 
         return if (phases == 3) {
-            sqrt(3.0) *
+            kotlin.math.sqrt(3.0) *
                 voltage *
                 current /
                 1000.0
@@ -353,11 +332,9 @@ object ElectricalCalculations {
         require(active >= 0.0)
         require(apparent >= active)
 
-        return sqrt(
-            (
-                apparent * apparent -
-                    active * active
-                ).coerceAtLeast(0.0)
+        return kotlin.math.sqrt(
+            apparent * apparent -
+                active * active
         )
     }
 
@@ -369,111 +346,7 @@ object ElectricalCalculations {
         require(active >= 0.0)
         require(apparent > 0.0)
 
-        return (
-            active / apparent
-            ).coerceIn(
-                0.0,
-                1.0
-            )
-    }
-
-    private fun mapCableResult(
-        result: CableResult,
-        input: ConductorSizingInput
-    ): ConductorSizingResult {
-
-        val designCurrent =
-            calculateDesignCurrent(
-                loadWatts =
-                    input.load,
-                voltage =
-                    input.voltage,
-                powerFactor =
-                    input.powerFactor,
-                currentType =
-                    input.currentType
-            )
-
-        val breaker =
-            listOf(
-                6.0,
-                10.0,
-                16.0,
-                20.0,
-                25.0,
-                32.0,
-                40.0,
-                50.0,
-                63.0,
-                80.0,
-                100.0,
-                125.0,
-                160.0,
-                200.0,
-                250.0,
-                315.0,
-                400.0,
-                500.0,
-                630.0
-            ).firstOrNull {
-                it >= designCurrent
-            } ?: 0.0
-
-        return ConductorSizingResult(
-            designCurrent =
-                designCurrent,
-
-            recommendedSection =
-                result.selectedSizeMm2,
-
-            selectedSection =
-                result.selectedSizeMm2,
-
-            ampacity =
-                result.ampacityA,
-
-            voltageDropPercent =
-                result.voltageDropPercent,
-
-            voltageDropVolts =
-                input.voltage *
-                    result.voltageDropPercent /
-                    100.0,
-
-            protectiveDevice =
-                breaker,
-
-            shortCircuitCurrentKA =
-                0.0,
-
-            breakerWithinCableCapacity =
-                breaker > 0.0 &&
-                    breaker <=
-                    result.ampacityA,
-
-            voltageDropWithinLimit =
-                result.voltageDropPercent <=
-                    input.maxVoltageDrop,
-
-            notes =
-                listOf(
-                    result.conductorDescription,
-
-                    "Design current = %.2f A"
-                        .format(
-                            designCurrent
-                        ),
-
-                    "Ampacity = %.1f A"
-                        .format(
-                            result.ampacityA
-                        ),
-
-                    "Voltage drop = %.2f %%"
-                        .format(
-                            result.voltageDropPercent
-                        )
-                )
-        )
+        return (active / apparent)
+            .coerceIn(0.0, 1.0)
     }
 }
