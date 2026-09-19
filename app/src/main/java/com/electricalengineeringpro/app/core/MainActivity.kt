@@ -16,93 +16,68 @@ class MainActivity : Activity() {
 
     private lateinit var content: LinearLayout
 
-    private val core =
-        ProfessionalEngineeringCore.instance
-
-    private val blue =
-        Color.rgb(25, 103, 175)
-
-    private val darkBlue =
-        Color.rgb(14, 72, 125)
-
-    private val background =
-        Color.rgb(245, 248, 252)
-
-    private val white =
-        Color.WHITE
-
-    private val text =
-        Color.rgb(30, 43, 56)
-
-    private val secondary =
-        Color.rgb(91, 105, 118)
-
-    override fun onCreate(
-        savedInstanceState: Bundle?
-    ) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        createInterface()
-
+        buildUi()
         showHome()
     }
 
     /*
      * ============================================================
-     * USER INTERFACE
+     * UI ONLY
      * ============================================================
      *
-     * THIS FILE CONTAINS UI ONLY.
+     * No engineering calculations are implemented here.
      *
-     * Engineering calculations remain inside:
+     * Engineering calculations remain in:
      *
      * ProfessionalEngineeringCore
-     *      └── existing calculation classes
+     *        |
+     *        +-- calculation/
+     *        |
+     *        +-- sld/
      *
      * ============================================================
      */
 
-    private fun createInterface() {
+    private fun buildUi() {
 
-        val root =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
+        val root = LinearLayout(this)
 
-                setBackgroundColor(
-                    background
-                )
-            }
+        root.orientation = LinearLayout.VERTICAL
 
-        val header =
-            TextView(this).apply {
-                text =
-                    "⚡  PROFESSIONAL ENGINEERING"
+        root.setBackgroundColor(
+            Color.rgb(245, 248, 252)
+        )
 
-                textSize =
-                    19f
+        val header = TextView(this)
 
-                typeface =
-                    Typeface.DEFAULT_BOLD
+        header.text =
+            "⚡  PROFESSIONAL ENGINEERING"
 
-                setTextColor(
-                    text
-                )
+        header.textSize = 19f
 
-                gravity =
-                    Gravity.CENTER_VERTICAL
+        header.typeface =
+            Typeface.DEFAULT_BOLD
 
-                setPadding(
-                    dp(16),
-                    0,
-                    dp(16),
-                    0
-                )
+        header.gravity =
+            Gravity.CENTER_VERTICAL
 
-                setBackgroundColor(
-                    white
-                )
-            }
+        header.setTextColor(
+            Color.rgb(25, 45, 65)
+        )
+
+        header.setPadding(
+            dp(16),
+            0,
+            dp(16),
+            0
+        )
+
+        header.setBackgroundColor(
+            Color.WHITE
+        )
 
         root.addView(
             header,
@@ -112,197 +87,125 @@ class MainActivity : Activity() {
             )
         )
 
+        val tabsScroll =
+            HorizontalScrollView(this)
+
+        tabsScroll.isHorizontalScrollBarEnabled =
+            false
+
+        tabsScroll.setBackgroundColor(
+            Color.WHITE
+        )
+
         val tabs =
-            HorizontalScrollView(this).apply {
-                isHorizontalScrollBarEnabled =
-                    false
+            LinearLayout(this)
 
-                setBackgroundColor(
-                    white
-                )
-            }
+        tabs.orientation =
+            LinearLayout.HORIZONTAL
 
-        val tabContainer =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-
-                setPadding(
-                    dp(6),
-                    dp(5),
-                    dp(6),
-                    dp(5)
-                )
-            }
+        tabs.setPadding(
+            dp(6),
+            dp(6),
+            dp(6),
+            dp(6)
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "⚡\nPOWER",
-            "Power calculation"
-        ) {
-            showPower()
-        }
+            "Power"
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "▦\nLOAD",
-            "Electrical loads"
-        ) {
-            showMessage(
-                "LOAD",
-                "Electrical load calculation is provided by the existing LoadCalculator."
-            )
-        }
+            "Loads"
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "⌁\nCABLE",
-            "Cable sizing"
-        ) {
-            showMessage(
-                "CABLE",
-                "Cable sizing is provided by the existing CableCalculator."
-            )
-        }
+            "Cable"
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "↘\nV-DROP",
-            "Voltage drop"
-        ) {
-            showMessage(
-                "VOLTAGE DROP",
-                "Voltage-drop calculation is provided by the existing VoltageDropCalculator."
-            )
-        }
+            "Voltage Drop"
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "⚠\nS.C.",
-            "Short circuit"
-        ) {
-            showMessage(
-                "SHORT CIRCUIT",
-                "Short-circuit calculation is provided by the existing ShortCircuitCalculator."
-            )
-        }
+            "Short Circuit"
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "▣\nBREAKER",
             "Breaker"
-        ) {
-            showMessage(
-                "BREAKER",
-                "Breaker calculation is provided by the existing BreakerCalculator."
-            )
-        }
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "⇅\nTRANS.",
             "Transformer"
-        ) {
-            showMessage(
-                "TRANSFORMER",
-                "Transformer calculation is provided by the existing TransformerCalculator."
-            )
-        }
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "◉\nGEN.",
             "Generator"
-        ) {
-            showMessage(
-                "GENERATOR",
-                "Generator calculation is provided by the existing GeneratorCalculator."
-            )
-        }
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "⚙\nMOTOR",
             "Motor"
-        ) {
-            showMessage(
-                "MOTOR",
-                "Motor calculation is provided by the existing MotorCalculator."
-            )
-        }
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "◈\nPUMP",
             "Pump"
-        ) {
-            showMessage(
-                "PUMP",
-                "Pump calculation is provided by the existing PumpCalculator."
-            )
-        }
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "▤\nMDB",
             "MDB"
-        ) {
-            showMessage(
-                "MDB",
-                "MDB calculation is provided by the existing MdbCalculator."
-            )
-        }
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "🛡\nPROT.",
             "Protection"
-        ) {
-            showMessage(
-                "PROTECTION",
-                "Protection calculation is provided by the existing ProtectionCalculator."
-            )
-        }
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "⌘\nNETWORK",
             "Network"
-        ) {
-            showMessage(
-                "NETWORK",
-                "Network calculation is provided by the existing ElectricalNetworkCalculator."
-            )
-        }
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "◆\nDESIGN",
-            "Complete design"
-        ) {
-            showMessage(
-                "COMPLETE DESIGN",
-                "Complete design is provided by the existing CompleteDesignCalculator."
-            )
-        }
+            "Complete Design"
+        )
 
         addTab(
-            tabContainer,
+            tabs,
             "⌗\nSLD",
-            "Single line"
-        ) {
-            showMessage(
-                "SINGLE LINE DIAGRAM",
-                "SLD generation is provided by the existing SldGenerator."
-            )
-        }
+            "Single Line Diagram"
+        )
 
-        tabs.addView(
-            tabContainer
+        tabsScroll.addView(
+            tabs
         )
 
         root.addView(
-            tabs,
+            tabsScroll,
             LinearLayout.LayoutParams(
                 -1,
                 dp(78)
@@ -310,24 +213,20 @@ class MainActivity : Activity() {
         )
 
         val scroll =
-            ScrollView(this).apply {
-                setBackgroundColor(
-                    background
-                )
-            }
+            ScrollView(this)
 
         content =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
+            LinearLayout(this)
 
-                setPadding(
-                    dp(12),
-                    dp(12),
-                    dp(12),
-                    dp(30)
-                )
-            }
+        content.orientation =
+            LinearLayout.VERTICAL
+
+        content.setPadding(
+            dp(12),
+            dp(12),
+            dp(12),
+            dp(24)
+        )
 
         scroll.addView(
             content
@@ -342,331 +241,395 @@ class MainActivity : Activity() {
             )
         )
 
-        setContentView(
-            root
-        )
+        setContentView(root)
     }
 
     private fun addTab(
-        container: LinearLayout,
-        title: String,
-        description: String,
-        action: () -> Unit
+        parent: LinearLayout,
+        shortName: String,
+        description: String
     ) {
 
         val button =
-            Button(this).apply {
+            Button(this)
 
-                text =
-                    title
+        button.text =
+            shortName
 
-                textSize =
-                    9f
+        button.textSize =
+            8.5f
 
-                typeface =
-                    Typeface.DEFAULT_BOLD
+        button.typeface =
+            Typeface.DEFAULT_BOLD
 
-                setTextColor(
-                    darkBlue
-                )
-
-                setPadding(
-                    dp(4),
-                    0,
-                    dp(4),
-                    0
-                )
-
-                setOnClickListener {
-                    action()
-                }
-
-                contentDescription =
-                    description
-            }
-
-        container.addView(
-            button,
-            LinearLayout.LayoutParams(
-                dp(82),
-                dp(64)
-            ).apply {
-                setMargins(
-                    dp(2),
-                    0,
-                    dp(2),
-                    0
-                )
-            }
+        button.setTextColor(
+            Color.rgb(20, 75, 125)
         )
-    }
 
-    /*
-     * ============================================================
-     * PAGES
-     * ============================================================
-     */
+        button.setPadding(
+            dp(3),
+            0,
+            dp(3),
+            0
+        )
 
-    private fun clear() {
-        content.removeAllViews()
+        button.contentDescription =
+            description
+
+        button.setOnClickListener {
+
+            showSection(
+                description
+            )
+        }
+
+        val params =
+            LinearLayout.LayoutParams(
+                dp(78),
+                dp(64)
+            )
+
+        params.setMargins(
+            dp(2),
+            0,
+            dp(2),
+            0
+        )
+
+        parent.addView(
+            button,
+            params
+        )
     }
 
     private fun showHome() {
 
-        clear()
+        content.removeAllViews()
 
-        title(
-            "ENGINEERING CALCULATIONS",
-            "Select an engineering function"
+        addTitle(
+            "PROFESSIONAL ENGINEERING",
+            "Electrical design and calculation system"
         )
 
-        card(
-            "ProfessionalEngineeringCore",
-            "All engineering calculations are handled by the existing core and its existing calculation modules."
+        addCard(
+            "Calculation Core",
+            "ProfessionalEngineeringCore"
         )
 
-        card(
-            "Calculation Architecture",
-            "UI → ProfessionalEngineeringCore → Existing Calculators"
+        addCard(
+            "Engineering Modules",
+            "Power • Loads • Cable • Voltage Drop • Short Circuit • Protection"
         )
 
-        card(
-            "Engineering Units",
-            "Power: kW / kVA     Current: A     Fault level: kA     Cable: mm²"
+        addCard(
+            "Equipment",
+            "Transformer • Generator • Motor • Pump • MDB"
+        )
+
+        addCard(
+            "System Design",
+            "Network • Complete Design • Single Line Diagram"
+        )
+
+        addCard(
+            "Units",
+            "Power: kW / kVA     Current: A     Fault Current: kA     Cable: mm²"
         )
     }
 
-    private fun showPower() {
+    private fun showSection(
+        name: String
+    ) {
 
-        clear()
+        content.removeAllViews()
 
-        title(
-            "POWER",
-            "Active / apparent power and current"
+        addTitle(
+            name,
+            sectionDescription(name)
         )
 
-        card(
-            "Power Calculator",
-            "The calculation engine already exists in ProfessionalEngineeringCore."
+        addCard(
+            "Engineering Module",
+            moduleName(name)
         )
 
-        action(
-            "OPEN POWER CALCULATOR"
-        ) {
-            showMessage(
-                "POWER",
-                "The PowerCalculator already exists in the core."
+        addCard(
+            "Calculation Engine",
+            "The engineering calculation is implemented in the existing calculation module."
+        )
+
+        addCard(
+            "Core",
+            "ProfessionalEngineeringCore"
+        )
+
+        if (name == "Single Line Diagram") {
+
+            addCard(
+                "SLD",
+                "Single Line Diagram generation is implemented by the existing SldGenerator."
             )
         }
     }
 
-    private fun showMessage(
-        name: String,
-        description: String
-    ) {
+    private fun sectionDescription(
+        name: String
+    ): String {
 
-        clear()
+        return when (name) {
 
-        title(
-            name,
-            description
-        )
+            "Power" ->
+                "Electrical power and current"
 
-        card(
-            "Existing Engineering Module",
-            description
-        )
+            "Loads" ->
+                "Electrical load calculations"
 
-        card(
-            "Architecture",
-            "This screen does not contain engineering formulas."
-        )
+            "Cable" ->
+                "Cable sizing and selection"
 
-        card(
-            "Calculation Engine",
-            "ProfessionalEngineeringCore.instance"
-        )
+            "Voltage Drop" ->
+                "Voltage-drop assessment"
+
+            "Short Circuit" ->
+                "Short-circuit fault calculation"
+
+            "Breaker" ->
+                "Circuit-breaker calculation"
+
+            "Transformer" ->
+                "Transformer calculations"
+
+            "Generator" ->
+                "Generator calculations"
+
+            "Motor" ->
+                "Motor calculations"
+
+            "Pump" ->
+                "Pump electrical calculations"
+
+            "MDB" ->
+                "Main distribution board"
+
+            "Protection" ->
+                "Electrical protection"
+
+            "Network" ->
+                "Electrical network calculation"
+
+            "Complete Design" ->
+                "Complete electrical design"
+
+            "Single Line Diagram" ->
+                "Electrical single-line diagram"
+
+            else ->
+                ""
+        }
     }
 
-    private fun title(
+    private fun moduleName(
+        name: String
+    ): String {
+
+        return when (name) {
+
+            "Power" ->
+                "PowerCalculator"
+
+            "Loads" ->
+                "LoadCalculator"
+
+            "Cable" ->
+                "CableCalculator"
+
+            "Voltage Drop" ->
+                "VoltageDropCalculator"
+
+            "Short Circuit" ->
+                "ShortCircuitCalculator"
+
+            "Breaker" ->
+                "BreakerCalculator"
+
+            "Transformer" ->
+                "TransformerCalculator"
+
+            "Generator" ->
+                "GeneratorCalculator"
+
+            "Motor" ->
+                "MotorCalculator"
+
+            "Pump" ->
+                "PumpCalculator"
+
+            "MDB" ->
+                "MdbCalculator"
+
+            "Protection" ->
+                "ProtectionCalculator"
+
+            "Network" ->
+                "ElectricalNetworkCalculator"
+
+            "Complete Design" ->
+                "CompleteDesignCalculator"
+
+            "Single Line Diagram" ->
+                "SldGenerator"
+
+            else ->
+                ""
+        }
+    }
+
+    private fun addTitle(
         title: String,
         subtitle: String
     ) {
 
-        val t =
-            TextView(this).apply {
-                text =
-                    title
+        val titleView =
+            TextView(this)
 
-                textSize =
-                    21f
+        titleView.text =
+            title
 
-                typeface =
-                    Typeface.DEFAULT_BOLD
+        titleView.textSize =
+            21f
 
-                setTextColor(
-                    text
-                )
+        titleView.typeface =
+            Typeface.DEFAULT_BOLD
 
-                setPadding(
-                    dp(4),
-                    dp(4),
-                    dp(4),
-                    0
-                )
-            }
+        titleView.setTextColor(
+            Color.rgb(20, 55, 90)
+        )
 
-        val s =
-            TextView(this).apply {
-                text =
-                    subtitle
+        titleView.setPadding(
+            dp(4),
+            dp(4),
+            dp(4),
+            0
+        )
 
-                textSize =
-                    10f
+        content.addView(
+            titleView
+        )
 
-                setTextColor(
-                    secondary
-                )
+        val subtitleView =
+            TextView(this)
 
-                setPadding(
-                    dp(4),
-                    dp(2),
-                    dp(4),
-                    dp(10)
-                )
-            }
+        subtitleView.text =
+            subtitle
 
-        content.addView(t)
+        subtitleView.textSize =
+            11f
 
-        content.addView(s)
+        subtitleView.setTextColor(
+            Color.rgb(90, 105, 120)
+        )
+
+        subtitleView.setPadding(
+            dp(4),
+            dp(3),
+            dp(4),
+            dp(10)
+        )
+
+        content.addView(
+            subtitleView
+        )
     }
 
-    private fun card(
+    private fun addCard(
         title: String,
         description: String
     ) {
 
-        val box =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
+        val card =
+            LinearLayout(this)
 
-                setPadding(
-                    dp(14),
-                    dp(12),
-                    dp(14),
-                    dp(12)
-                )
+        card.orientation =
+            LinearLayout.VERTICAL
 
-                setBackgroundColor(
-                    white
-                )
-            }
+        card.setBackgroundColor(
+            Color.WHITE
+        )
 
-        val t =
-            TextView(this).apply {
-                text =
-                    title
+        card.setPadding(
+            dp(14),
+            dp(12),
+            dp(14),
+            dp(12)
+        )
 
-                textSize =
-                    14f
+        val titleView =
+            TextView(this)
 
-                typeface =
-                    Typeface.DEFAULT_BOLD
+        titleView.text =
+            title
 
-                setTextColor(
-                    darkBlue
-                )
-            }
+        titleView.textSize =
+            14f
 
-        val d =
-            TextView(this).apply {
-                text =
-                    description
+        titleView.typeface =
+            Typeface.DEFAULT_BOLD
 
-                textSize =
-                    10f
+        titleView.setTextColor(
+            Color.rgb(20, 75, 125)
+        )
 
-                setTextColor(
-                    secondary
-                )
+        card.addView(
+            titleView
+        )
 
-                setPadding(
-                    0,
-                    dp(4),
-                    0,
-                    0
-                )
-            }
+        val descriptionView =
+            TextView(this)
 
-        box.addView(t)
-        box.addView(d)
+        descriptionView.text =
+            description
 
-        content.addView(
-            box,
+        descriptionView.textSize =
+            11f
+
+        descriptionView.setTextColor(
+            Color.rgb(85, 100, 115)
+        )
+
+        descriptionView.setPadding(
+            0,
+            dp(5),
+            0,
+            0
+        )
+
+        card.addView(
+            descriptionView
+        )
+
+        val params =
             LinearLayout.LayoutParams(
                 -1,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(
-                    0,
-                    dp(4),
-                    0,
-                    dp(7)
-                )
-            }
+            )
+
+        params.setMargins(
+            0,
+            dp(4),
+            0,
+            dp(7)
         )
-    }
-
-    private fun action(
-        text: String,
-        action: () -> Unit
-    ) {
-
-        val button =
-            Button(this).apply {
-
-                this.text =
-                    text
-
-                textSize =
-                    11f
-
-                typeface =
-                    Typeface.DEFAULT_BOLD
-
-                setTextColor(
-                    Color.WHITE
-                )
-
-                setBackgroundColor(
-                    blue
-                )
-
-                setOnClickListener {
-                    action()
-                }
-            }
 
         content.addView(
-            button,
-            LinearLayout.LayoutParams(
-                -1,
-                dp(46)
-            ).apply {
-                setMargins(
-                    0,
-                    dp(6),
-                    0,
-                    dp(8)
-                )
-            }
+            card,
+            params
         )
     }
 
     private fun dp(
         value: Int
     ): Int {
+
         return (
             value *
                 resources.displayMetrics.density
