@@ -20,6 +20,12 @@ import com.electricalengineeringpro.app.core.calculation.TransformerSizingCalcul
 import com.electricalengineeringpro.app.core.calculation.VoltageDropCalculator
 import com.electricalengineeringpro.app.core.sld.SldGenerator
 
+/**
+ * Single public facade of the engineering calculation library.
+ *
+ * This class is intentionally free of engineering formulas and calculation logic.
+ * All engineering behavior is implemented by the modular calculators.
+ */
 class ProfessionalEngineeringCore private constructor() {
 
     val power =
@@ -74,7 +80,11 @@ class ProfessionalEngineeringCore private constructor() {
         ElectricalNetworkCalculator(loads)
 
     val completeDesign =
-        CompleteDesignCalculator(this)
+        CompleteDesignCalculator(
+            loadCalculator = loads,
+            transformerSizingCalculator = transformerSizing,
+            breakerSelectionCalculator = breakerSelection
+        )
 
     val sld =
         SldGenerator()
