@@ -1,0 +1,29 @@
+package com.elghaty.professionalengineeringcore.core.catalog
+
+object StandardRatings {
+
+    val breakerRatingsA = listOf(
+        6.0, 10.0, 16.0, 20.0, 25.0, 32.0,
+        40.0, 50.0, 63.0, 80.0, 100.0, 125.0,
+        160.0, 200.0, 250.0, 320.0, 400.0,
+        500.0, 630.0, 800.0, 1000.0, 1250.0,
+        1600.0, 2000.0, 2500.0, 3200.0
+    )
+
+    val breakingCapacitiesKA = listOf(
+        6.0, 10.0, 15.0, 18.0, 25.0,
+        36.0, 50.0, 65.0, 85.0, 100.0
+    )
+
+    val copperCableSizesMm2 = listOf(
+        1.5, 2.5, 4.0, 6.0, 10.0, 16.0,
+        25.0, 35.0, 50.0, 70.0, 95.0, 120.0,
+        150.0, 185.0, 240.0, 300.0, 400.0
+    )
+
+    val aluminiumCableSizesMm2 = listOf(
+        16.0, 25.0, 35.0, 50.0, 70.0,
+        95.0, 120.0, 150.0, 185.0,
+        240.0, 300.0, 400.0
+    )
+}
