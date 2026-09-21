@@ -45,6 +45,10 @@ class MainActivity : Activity() {
     private lateinit var groupingInput: EditText
     private lateinit var voltageDropInput: EditText
 
+    /**
+     * ProfessionalEngineeringCore is the ONLY public
+     * engineering calculation interface used by the UI.
+     */
     private val core: ProfessionalEngineeringCore
         get() = ProfessionalEngineeringCore.instance
 
@@ -57,6 +61,7 @@ class MainActivity : Activity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+
             setBackgroundColor(
                 Color.rgb(244, 247, 251)
             )
@@ -70,6 +75,7 @@ class MainActivity : Activity() {
 
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+
             setPadding(
                 dp(16),
                 dp(14),
@@ -116,17 +122,24 @@ class MainActivity : Activity() {
                     text = "⚡ PROFESSIONAL ENGINEERING"
                     textSize = 20f
                     typeface = Typeface.DEFAULT_BOLD
-                    setTextColor(Color.WHITE)
+
+                    setTextColor(
+                        Color.WHITE
+                    )
                 }
             )
 
             addView(
                 TextView(this@MainActivity).apply {
-                    text = "Electrical Design & Calculation System"
+                    text =
+                        "Electrical Design & Calculation System"
+
                     textSize = 12f
+
                     setTextColor(
                         Color.rgb(210, 225, 235)
                     )
+
                     setPadding(
                         0,
                         dp(4),
@@ -282,7 +295,10 @@ class MainActivity : Activity() {
                 text = "CALCULATE COMPLETE DESIGN"
                 textSize = 15f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.WHITE)
+
+                setTextColor(
+                    Color.WHITE
+                )
 
                 setBackgroundColor(
                     Color.rgb(21, 101, 192)
@@ -362,11 +378,14 @@ class MainActivity : Activity() {
     }
 
     /**
-     * UI layer.
+     * UI layer only.
      *
-     * No electrical equations are implemented here.
-     * The actual engineering calculation is performed by
-     * ProfessionalEngineeringCore through panelDesign.
+     * IMPORTANT:
+     *
+     * The UI does NOT perform engineering calculations.
+     *
+     * All engineering calculations are requested through
+     * the single public ProfessionalEngineeringCore interface.
      */
     private fun calculateDesign() {
 
@@ -378,20 +397,20 @@ class MainActivity : Activity() {
                 createPanelDesignInput()
 
             /*
-             * IMPORTANT:
-             * ProfessionalEngineeringCore currently exposes
-             * PanelDesignCalculator as:
+             * SINGLE ENGINEERING ENTRY POINT
+             *
+             * Do NOT call:
              *
              * core.panelDesign
+             * core.cable
+             * core.breaker
+             * core.shortCircuit
+             * or any calculator directly.
              *
-             * Therefore this call intentionally uses:
-             *
-             * core.panelDesign.calculate(input)
-             *
-             * and NOT a non-existing facade method.
+             * The UI calls ProfessionalEngineeringCore only.
              */
             val result =
-                core.panelDesign.calculate(
+                core.calculatePanelDesign(
                     input
                 )
 
@@ -411,7 +430,7 @@ class MainActivity : Activity() {
      * Converts UI fields into the existing
      * PanelDesignInput model.
      *
-     * No engineering formula is performed here.
+     * No engineering equation is implemented here.
      */
     private fun createPanelDesignInput():
         PanelDesignInput {
@@ -823,7 +842,9 @@ class MainActivity : Activity() {
         )
 
         spinner.adapter = adapter
-        spinner.contentDescription = label
+
+        spinner.contentDescription =
+            label
 
         content.addView(
             spinner,
