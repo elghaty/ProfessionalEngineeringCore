@@ -19,105 +19,476 @@ import com.electricalengineeringpro.app.core.calculation.ShortCircuitCalculator
 import com.electricalengineeringpro.app.core.calculation.TransformerCalculator
 import com.electricalengineeringpro.app.core.calculation.TransformerSizingCalculator
 import com.electricalengineeringpro.app.core.calculation.VoltageDropCalculator
+import com.electricalengineeringpro.app.core.model.BreakerInput
+import com.electricalengineeringpro.app.core.model.BreakerResult
+import com.electricalengineeringpro.app.core.model.CableInput
+import com.electricalengineeringpro.app.core.model.CableResult
+import com.electricalengineeringpro.app.core.model.ElectricalLoad
+import com.electricalengineeringpro.app.core.model.MdbInput
+import com.electricalengineeringpro.app.core.model.MdbResult
+import com.electricalengineeringpro.app.core.model.MotorInput
+import com.electricalengineeringpro.app.core.model.MotorResult
 import com.electricalengineeringpro.app.core.model.PanelDesignInput
 import com.electricalengineeringpro.app.core.model.PanelDesignResult
+import com.electricalengineeringpro.app.core.model.Phase
+import com.electricalengineeringpro.app.core.model.ProtectionInput
+import com.electricalengineeringpro.app.core.model.ProtectionResult
+import com.electricalengineeringpro.app.core.model.PumpInput
+import com.electricalengineeringpro.app.core.model.PumpResult
+import com.electricalengineeringpro.app.core.model.ShortCircuitInput
+import com.electricalengineeringpro.app.core.model.ShortCircuitResult
+import com.electricalengineeringpro.app.core.model.TransformerInput
+import com.electricalengineeringpro.app.core.model.TransformerResult
+import com.electricalengineeringpro.app.core.model.VoltageDropResult
 import com.electricalengineeringpro.app.core.sld.SldGenerator
+import com.electricalengineeringpro.app.core.sld.SingleLineDiagram
 
 /**
  * ProfessionalEngineeringCore
  *
- * THE SINGLE ENGINEERING CALCULATION CORE.
+ * SINGLE PUBLIC FACADE FOR THE ENGINEERING ENGINE.
  *
- * This class is the single public entry point for
- * all engineering calculations used by the application.
+ * IMPORTANT:
+ * - This class contains NO engineering formulas.
+ * - This class contains NO UI code.
+ * - This class does NOT implement calculations.
+ * - All calculations are delegated to the existing
+ *   calculator classes in the calculation package.
  *
- * UI classes must not implement engineering formulas.
+ * Android UI must communicate with the engineering layer
+ * through this facade instead of calling calculators directly.
  */
 class ProfessionalEngineeringCore private constructor() {
 
-    val power =
+    /*
+     * ============================================================
+     * EXISTING CALCULATORS
+     * ============================================================
+     *
+     * These are the existing calculation classes.
+     * No new calculation engine is created here.
+     */
+
+    private val powerCalculator =
         PowerCalculator()
 
-    val loads =
+    private val loadCalculator =
         LoadCalculator()
 
-    val designSummary =
-        DesignSummaryCalculator()
-
-    val loadSchedule =
+    private val loadScheduleCalculator =
         LoadScheduleCalculator(
-            loads
+            loadCalculator
         )
 
-    val cable =
+    private val cableCalculator =
         CableCalculator()
 
-    val breaker =
+    private val breakerCalculator =
         BreakerCalculator()
 
-    val breakerSelection =
+    private val breakerSelectionCalculator =
         BreakerSelectionCalculator()
 
-    val voltageDrop =
+    private val voltageDropCalculator =
         VoltageDropCalculator()
 
-    val shortCircuit =
+    private val shortCircuitCalculator =
         ShortCircuitCalculator()
 
-    val transformer =
+    private val transformerCalculator =
         TransformerCalculator()
 
-    val transformerSizing =
+    private val transformerSizingCalculator =
         TransformerSizingCalculator()
 
-    val generators =
+    private val generatorCalculator =
         GeneratorCalculator()
 
-    val motors =
+    private val motorCalculator =
         MotorCalculator()
 
-    val pumps =
+    private val pumpCalculator =
         PumpCalculator()
 
-    val protection =
+    private val protectionCalculator =
         ProtectionCalculator()
 
-    val mdb =
+    private val mdbCalculator =
         MdbCalculator()
 
-    val network =
+    private val designSummaryCalculator =
+        DesignSummaryCalculator()
+
+    private val electricalNetworkCalculator =
         ElectricalNetworkCalculator(
-            loads
+            loadCalculator
         )
 
-    val completeDesign =
+    private val completeDesignCalculator =
         CompleteDesignCalculator(
-            loadCalculator = loads,
-            transformerSizingCalculator = transformerSizing,
-            breakerSelectionCalculator = breakerSelection
+            loadCalculator = loadCalculator,
+            transformerSizingCalculator =
+                transformerSizingCalculator,
+            breakerSelectionCalculator =
+                breakerSelectionCalculator
         )
 
-    /*
-     * Panel design remains inside the single
-     * ProfessionalEngineeringCore architecture.
-     */
     private val panelDesignCalculator =
         PanelDesignCalculator(
-            cableCalculator = cable,
-            breakerCalculator = breakerSelection,
-            transformerSizingCalculator = transformerSizing
+            cableCalculator = cableCalculator,
+            breakerCalculator =
+                breakerSelectionCalculator,
+            transformerSizingCalculator =
+                transformerSizingCalculator
         )
 
-    val sld =
+    private val sldGenerator =
         SldGenerator()
 
-    /**
-     * Single public entry point for complete
-     * panel feeder engineering design.
-     *
-     * All engineering calculations are delegated
-     * to PanelDesignCalculator.
+
+    /*
+     * ============================================================
+     * POWER
+     * ============================================================
      */
+
+    fun calculatePower(
+        powerKw: Double,
+        voltage: Double,
+        powerFactor: Double,
+        phase: Phase
+    ): PowerResult {
+
+        return powerCalculator.fromKw(
+            powerKw = powerKw,
+            voltage = voltage,
+            powerFactor = powerFactor,
+            phase = phase
+        )
+    }
+
+    fun calculatePowerFromKva(
+        kva: Double,
+        voltage: Double,
+        powerFactor: Double,
+        phase: Phase
+    ): PowerResult {
+
+        return powerCalculator.fromKva(
+            kva = kva,
+            voltage = voltage,
+            powerFactor = powerFactor,
+            phase = phase
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * LOAD
+     * ============================================================
+     */
+
+    fun calculateLoad(
+        load: ElectricalLoad
+    ): LoadResult {
+
+        return loadCalculator.calculate(
+            load
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * LOAD SCHEDULE
+     * ============================================================
+     */
+
+    fun calculateLoadSchedule(
+        loads: List<ElectricalLoad>
+    ): LoadScheduleResult {
+
+        return loadScheduleCalculator.calculate(
+            loads
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * CABLE
+     * ============================================================
+     */
+
+    fun calculateCable(
+        input: CableInput
+    ): CableResult {
+
+        return cableCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * BREAKER
+     * ============================================================
+     */
+
+    fun calculateBreaker(
+        input: BreakerInput
+    ): BreakerResult {
+
+        return breakerCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * BREAKER SELECTION
+     * ============================================================
+     */
+
+    fun calculateBreakerSelection(
+        input: BreakerSelectionInput
+    ): BreakerSelectionResult {
+
+        return breakerSelectionCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * VOLTAGE DROP
+     * ============================================================
+     */
+
+    fun calculateVoltageDrop(
+        currentA: Double,
+        lengthM: Double,
+        resistanceOhmPerKm: Double,
+        reactanceOhmPerKm: Double,
+        voltage: Double,
+        powerFactor: Double,
+        phase: Phase,
+        maximumPercent: Double
+    ): VoltageDropResult {
+
+        return voltageDropCalculator.calculate(
+            currentA = currentA,
+            lengthM = lengthM,
+            resistanceOhmPerKm =
+                resistanceOhmPerKm,
+            reactanceOhmPerKm =
+                reactanceOhmPerKm,
+            voltage = voltage,
+            powerFactor = powerFactor,
+            phase = phase,
+            maximumPercent = maximumPercent
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * SHORT CIRCUIT
+     * ============================================================
+     */
+
+    fun calculateShortCircuit(
+        input: ShortCircuitInput
+    ): ShortCircuitResult {
+
+        return shortCircuitCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * TRANSFORMER
+     * ============================================================
+     */
+
+    fun calculateTransformer(
+        input: TransformerInput
+    ): TransformerResult {
+
+        return transformerCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * TRANSFORMER SIZING
+     * ============================================================
+     */
+
+    fun calculateTransformerSizing(
+        input: TransformerSizingInput
+    ): TransformerSizingResult {
+
+        return transformerSizingCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * GENERATOR
+     * ============================================================
+     */
+
+    fun calculateGenerator(
+        input: GeneratorInput
+    ): GeneratorResult {
+
+        return generatorCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * MOTOR
+     * ============================================================
+     */
+
+    fun calculateMotor(
+        input: MotorInput
+    ): MotorResult {
+
+        return motorCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * PUMP
+     * ============================================================
+     */
+
+    fun calculatePump(
+        input: PumpInput
+    ): PumpResult {
+
+        return pumpCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * PROTECTION
+     * ============================================================
+     */
+
+    fun calculateProtection(
+        input: ProtectionInput
+    ): ProtectionResult {
+
+        return protectionCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * MDB
+     * ============================================================
+     */
+
+    fun calculateMDB(
+        input: MdbInput
+    ): MdbResult {
+
+        return mdbCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * ELECTRICAL NETWORK
+     * ============================================================
+     */
+
+    fun calculateNetwork(
+        loads: List<ElectricalLoad>,
+        voltageV: Double = 400.0,
+        powerFactor: Double = 0.90,
+        phase: Phase = Phase.THREE
+    ): ElectricalNetworkResult {
+
+        return electricalNetworkCalculator.calculate(
+            loads = loads,
+            voltageV = voltageV,
+            powerFactor = powerFactor,
+            phase = phase
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * COMPLETE DESIGN
+     * ============================================================
+     */
+
+    fun calculateCompleteDesign(
+        input: CompleteDesignInput
+    ): CompleteDesignResult {
+
+        return completeDesignCalculator.calculate(
+            input
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * DESIGN SUMMARY
+     * ============================================================
+     */
+
+    fun calculateDesignSummary(
+        loads: List<ElectricalLoad>,
+        voltage: Double = 400.0,
+        powerFactor: Double = 0.90,
+        phase: Phase = Phase.THREE
+    ): DesignSummary {
+
+        return designSummaryCalculator.calculate(
+            loads = loads,
+            voltage = voltage,
+            powerFactor = powerFactor,
+            phase = phase
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * PANEL DESIGN
+     * ============================================================
+     */
+
     fun calculatePanelDesign(
         input: PanelDesignInput
     ): PanelDesignResult {
@@ -126,6 +497,39 @@ class ProfessionalEngineeringCore private constructor() {
             input
         )
     }
+
+
+    /*
+     * ============================================================
+     * SLD
+     * ============================================================
+     *
+     * SLD generation remains delegated to the existing
+     * SldGenerator. No SLD calculation is implemented here.
+     *
+     * NetworkElement is the existing network model used
+     * by SldGenerator.
+     */
+
+    fun generateSld(
+        source: NetworkElement,
+        panels: List<NetworkElement>,
+        feeders: List<NetworkElement>
+    ): SingleLineDiagram {
+
+        return sldGenerator.generate(
+            source = source,
+            panels = panels,
+            feeders = feeders
+        )
+    }
+
+
+    /*
+     * ============================================================
+     * SINGLETON INSTANCE
+     * ============================================================
+     */
 
     companion object {
 
