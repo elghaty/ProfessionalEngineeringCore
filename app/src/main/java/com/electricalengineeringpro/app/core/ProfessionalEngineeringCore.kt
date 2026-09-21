@@ -1,24 +1,6 @@
 package com.electricalengineeringpro.app.core
 
-import com.electricalengineeringpro.app.core.calculation.BreakerCalculator
-import com.electricalengineeringpro.app.core.calculation.BreakerSelectionCalculator
-import com.electricalengineeringpro.app.core.calculation.CableCalculator
-import com.electricalengineeringpro.app.core.calculation.CompleteDesignCalculator
-import com.electricalengineeringpro.app.core.calculation.DesignSummaryCalculator
-import com.electricalengineeringpro.app.core.calculation.ElectricalNetworkCalculator
-import com.electricalengineeringpro.app.core.calculation.GeneratorCalculator
-import com.electricalengineeringpro.app.core.calculation.LoadCalculator
-import com.electricalengineeringpro.app.core.calculation.LoadScheduleCalculator
-import com.electricalengineeringpro.app.core.calculation.MdbCalculator
-import com.electricalengineeringpro.app.core.calculation.MotorCalculator
-import com.electricalengineeringpro.app.core.calculation.PanelDesignCalculator
-import com.electricalengineeringpro.app.core.calculation.PowerCalculator
-import com.electricalengineeringpro.app.core.calculation.ProtectionCalculator
-import com.electricalengineeringpro.app.core.calculation.PumpCalculator
-import com.electricalengineeringpro.app.core.calculation.ShortCircuitCalculator
-import com.electricalengineeringpro.app.core.calculation.TransformerCalculator
-import com.electricalengineeringpro.app.core.calculation.TransformerSizingCalculator
-import com.electricalengineeringpro.app.core.calculation.VoltageDropCalculator
+import com.electricalengineeringpro.app.core.calculation.*
 import com.electricalengineeringpro.app.core.model.BreakerInput
 import com.electricalengineeringpro.app.core.model.BreakerResult
 import com.electricalengineeringpro.app.core.model.CableInput
@@ -28,6 +10,7 @@ import com.electricalengineeringpro.app.core.model.MdbInput
 import com.electricalengineeringpro.app.core.model.MdbResult
 import com.electricalengineeringpro.app.core.model.MotorInput
 import com.electricalengineeringpro.app.core.model.MotorResult
+import com.electricalengineeringpro.app.core.model.NetworkElement
 import com.electricalengineeringpro.app.core.model.PanelDesignInput
 import com.electricalengineeringpro.app.core.model.PanelDesignResult
 import com.electricalengineeringpro.app.core.model.Phase
@@ -44,30 +27,24 @@ import com.electricalengineeringpro.app.core.sld.SldGenerator
 import com.electricalengineeringpro.app.core.sld.SingleLineDiagram
 
 /**
- * ProfessionalEngineeringCore
+ * Single public facade for the engineering calculation layer.
  *
- * SINGLE PUBLIC FACADE FOR THE ENGINEERING ENGINE.
+ * This class contains:
+ * - No engineering formulas
+ * - No calculation logic
+ * - No UI code
  *
- * IMPORTANT:
- * - This class contains NO engineering formulas.
- * - This class contains NO UI code.
- * - This class does NOT implement calculations.
- * - All calculations are delegated to the existing
- *   calculator classes in the calculation package.
+ * All engineering calculations are delegated to the
+ * existing calculator classes in the calculation package.
  *
- * Android UI must communicate with the engineering layer
- * through this facade instead of calling calculators directly.
+ * Android should communicate with the engineering layer
+ * through this facade.
  */
 class ProfessionalEngineeringCore private constructor() {
 
-    /*
-     * ============================================================
-     * EXISTING CALCULATORS
-     * ============================================================
-     *
-     * These are the existing calculation classes.
-     * No new calculation engine is created here.
-     */
+    // ============================================================
+    // EXISTING CALCULATORS
+    // ============================================================
 
     private val powerCalculator =
         PowerCalculator()
@@ -146,11 +123,9 @@ class ProfessionalEngineeringCore private constructor() {
         SldGenerator()
 
 
-    /*
-     * ============================================================
-     * POWER
-     * ============================================================
-     */
+    // ============================================================
+    // POWER CALCULATIONS
+    // ============================================================
 
     fun calculatePower(
         powerKw: Double,
@@ -183,11 +158,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * LOAD
-     * ============================================================
-     */
+    // ============================================================
+    // LOAD CALCULATIONS
+    // ============================================================
 
     fun calculateLoad(
         load: ElectricalLoad
@@ -199,11 +172,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * LOAD SCHEDULE
-     * ============================================================
-     */
+    // ============================================================
+    // LOAD SCHEDULE
+    // ============================================================
 
     fun calculateLoadSchedule(
         loads: List<ElectricalLoad>
@@ -215,11 +186,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * CABLE
-     * ============================================================
-     */
+    // ============================================================
+    // CABLE
+    // ============================================================
 
     fun calculateCable(
         input: CableInput
@@ -231,11 +200,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * BREAKER
-     * ============================================================
-     */
+    // ============================================================
+    // BREAKER
+    // ============================================================
 
     fun calculateBreaker(
         input: BreakerInput
@@ -247,11 +214,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * BREAKER SELECTION
-     * ============================================================
-     */
+    // ============================================================
+    // BREAKER SELECTION
+    // ============================================================
 
     fun calculateBreakerSelection(
         input: BreakerSelectionInput
@@ -263,11 +228,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * VOLTAGE DROP
-     * ============================================================
-     */
+    // ============================================================
+    // VOLTAGE DROP
+    // ============================================================
 
     fun calculateVoltageDrop(
         currentA: Double,
@@ -290,16 +253,15 @@ class ProfessionalEngineeringCore private constructor() {
             voltage = voltage,
             powerFactor = powerFactor,
             phase = phase,
-            maximumPercent = maximumPercent
+            maximumPercent =
+                maximumPercent
         )
     }
 
 
-    /*
-     * ============================================================
-     * SHORT CIRCUIT
-     * ============================================================
-     */
+    // ============================================================
+    // SHORT CIRCUIT
+    // ============================================================
 
     fun calculateShortCircuit(
         input: ShortCircuitInput
@@ -311,11 +273,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * TRANSFORMER
-     * ============================================================
-     */
+    // ============================================================
+    // TRANSFORMER
+    // ============================================================
 
     fun calculateTransformer(
         input: TransformerInput
@@ -327,11 +287,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * TRANSFORMER SIZING
-     * ============================================================
-     */
+    // ============================================================
+    // TRANSFORMER SIZING
+    // ============================================================
 
     fun calculateTransformerSizing(
         input: TransformerSizingInput
@@ -343,11 +301,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * GENERATOR
-     * ============================================================
-     */
+    // ============================================================
+    // GENERATOR
+    // ============================================================
 
     fun calculateGenerator(
         input: GeneratorInput
@@ -359,11 +315,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * MOTOR
-     * ============================================================
-     */
+    // ============================================================
+    // MOTOR
+    // ============================================================
 
     fun calculateMotor(
         input: MotorInput
@@ -375,11 +329,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * PUMP
-     * ============================================================
-     */
+    // ============================================================
+    // PUMP
+    // ============================================================
 
     fun calculatePump(
         input: PumpInput
@@ -391,11 +343,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * PROTECTION
-     * ============================================================
-     */
+    // ============================================================
+    // PROTECTION
+    // ============================================================
 
     fun calculateProtection(
         input: ProtectionInput
@@ -407,11 +357,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * MDB
-     * ============================================================
-     */
+    // ============================================================
+    // MDB
+    // ============================================================
 
     fun calculateMDB(
         input: MdbInput
@@ -423,11 +371,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * ELECTRICAL NETWORK
-     * ============================================================
-     */
+    // ============================================================
+    // ELECTRICAL NETWORK
+    // ============================================================
 
     fun calculateNetwork(
         loads: List<ElectricalLoad>,
@@ -445,11 +391,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * COMPLETE DESIGN
-     * ============================================================
-     */
+    // ============================================================
+    // COMPLETE DESIGN
+    // ============================================================
 
     fun calculateCompleteDesign(
         input: CompleteDesignInput
@@ -461,11 +405,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * DESIGN SUMMARY
-     * ============================================================
-     */
+    // ============================================================
+    // DESIGN SUMMARY
+    // ============================================================
 
     fun calculateDesignSummary(
         loads: List<ElectricalLoad>,
@@ -483,11 +425,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * PANEL DESIGN
-     * ============================================================
-     */
+    // ============================================================
+    // PANEL DESIGN
+    // ============================================================
 
     fun calculatePanelDesign(
         input: PanelDesignInput
@@ -499,17 +439,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * SLD
-     * ============================================================
-     *
-     * SLD generation remains delegated to the existing
-     * SldGenerator. No SLD calculation is implemented here.
-     *
-     * NetworkElement is the existing network model used
-     * by SldGenerator.
-     */
+    // ============================================================
+    // SLD GENERATION
+    // ============================================================
 
     fun generateSld(
         source: NetworkElement,
@@ -525,11 +457,9 @@ class ProfessionalEngineeringCore private constructor() {
     }
 
 
-    /*
-     * ============================================================
-     * SINGLETON INSTANCE
-     * ============================================================
-     */
+    // ============================================================
+    // SINGLETON
+    // ============================================================
 
     companion object {
 
