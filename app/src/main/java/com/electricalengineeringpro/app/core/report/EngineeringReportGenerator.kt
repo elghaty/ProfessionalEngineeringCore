@@ -21,7 +21,7 @@ class EngineeringReportGenerator(
 
         val loadResults =
             loads.map {
-                core.loads.calculate(it)
+                core.calculateLoad(it)
             }
 
         val connectedKw =
@@ -35,7 +35,7 @@ class EngineeringReportGenerator(
             }
 
         val summary =
-            core.designSummary.calculate(
+            core.calculateDesignSummary(
                 loads = loads,
                 voltage = project.voltageV,
                 powerFactor = 0.90
