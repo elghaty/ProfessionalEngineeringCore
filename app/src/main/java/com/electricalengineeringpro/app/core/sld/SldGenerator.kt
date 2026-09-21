@@ -6,8 +6,11 @@ import com.electricalengineeringpro.app.core.model.NetworkElementType
 /**
  * Generic SLD generator for the existing network model.
  *
- * The generator preserves the existing network API while
- * allowing electrical data to be attached to SLD nodes.
+ * This class only generates the SLD representation.
+ *
+ * It does NOT perform independent electrical calculations.
+ * Electrical values are taken from the existing NetworkElement
+ * model and the existing ProfessionalEngineeringCore calculators.
  */
 class SldGenerator {
 
@@ -56,7 +59,7 @@ class SldGenerator {
                     ).asMap() +
                         if (source.ratingKva > 0.0) {
                             mapOf(
-                                "Rating" =
+                                "Rating" to
                                     "%.0f kVA".format(
                                         source.ratingKva
                                     )
@@ -113,7 +116,7 @@ class SldGenerator {
                                 panel.ratingKva > 0.0
                             ) {
                                 mapOf(
-                                    "Rating" =
+                                    "Rating" to
                                         "%.0f kVA".format(
                                             panel.ratingKva
                                         )
