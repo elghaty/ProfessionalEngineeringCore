@@ -39,7 +39,7 @@ class MainActivity : Activity() {
     private lateinit var upstreamIscInput: EditText
 
     private lateinit var cableSpinner: Spinner
-    private lateinit var installationSpinner
+    private lateinit var installationSpinner: Spinner
 
     private lateinit var ambientInput: EditText
     private lateinit var groupingInput: EditText
