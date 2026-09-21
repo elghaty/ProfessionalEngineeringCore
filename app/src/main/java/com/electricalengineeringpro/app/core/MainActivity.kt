@@ -39,28 +39,48 @@ class MainActivity : Activity() {
     private lateinit var upstreamIscInput: EditText
 
     private lateinit var cableSpinner: Spinner
-    private lateinit var installationSpinner: Spinner
+    private lateinit var installationSpinner
 
     private lateinit var ambientInput: EditText
     private lateinit var groupingInput: EditText
     private lateinit var voltageDropInput: EditText
 
-    /**
-     * ProfessionalEngineeringCore is the ONLY public
-     * engineering calculation interface used by the UI.
+    /*
+     * ProfessionalEngineeringCore is the ONLY engineering
+     * calculation interface used by the UI.
      */
     private val core: ProfessionalEngineeringCore
         get() = ProfessionalEngineeringCore.instance
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        buildUi()
+
+        /*
+         * Never allow a startup exception to make the
+         * application silently disappear.
+         */
+        try {
+            buildUi()
+        } catch (error: Throwable) {
+            showStartupError(error)
+        }
     }
 
-    private fun buildUi() {
+    private fun showStartupError(
+        error: Throwable
+    ) {
 
         val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+
+            orientation =
+                LinearLayout.VERTICAL
+
+            setPadding(
+                dp(20),
+                dp(24),
+                dp(20),
+                dp(24)
+            )
 
             setBackgroundColor(
                 Color.rgb(244, 247, 251)
@@ -68,23 +88,155 @@ class MainActivity : Activity() {
         }
 
         root.addView(
+            TextView(this).apply {
+
+                text =
+                    "PROFESSIONAL ENGINEERING"
+
+                textSize = 20f
+
+                typeface =
+                    Typeface.DEFAULT_BOLD
+
+                setTextColor(
+                    Color.rgb(11, 41, 66)
+                )
+            }
+        )
+
+        root.addView(
+            TextView(this).apply {
+
+                text =
+                    "STARTUP DIAGNOSTIC"
+
+                textSize = 17f
+
+                typeface =
+                    Typeface.DEFAULT_BOLD
+
+                setTextColor(
+                    Color.rgb(180, 40, 40)
+                )
+
+                setPadding(
+                    0,
+                    dp(16),
+                    0,
+                    dp(10)
+                )
+            }
+        )
+
+        root.addView(
+            TextView(this).apply {
+
+                text = buildString {
+
+                    append(
+                        "Application startup failed.\n\n"
+                    )
+
+                    append(
+                        "Exception:\n"
+                    )
+
+                    append(
+                        error.javaClass.name
+                    )
+
+                    append(
+                        "\n\nMessage:\n"
+                    )
+
+                    append(
+                        error.message
+                            ?: "No message"
+                    )
+
+                    append(
+                        "\n\nCause:\n"
+                    )
+
+                    append(
+                        error.cause?.toString()
+                            ?: "None"
+                    )
+                }
+
+                textSize = 14f
+
+                setTextColor(
+                    Color.DKGRAY
+                )
+            }
+        )
+
+        root.addView(
+            Button(this).apply {
+
+                text = "RETRY"
+
+                setOnClickListener {
+
+                    try {
+
+                        buildUi()
+
+                    } catch (retryError: Throwable) {
+
+                        showStartupError(
+                            retryError
+                        )
+                    }
+                }
+            }
+        )
+
+        setContentView(root)
+    }
+
+    private fun buildUi() {
+
+        val root =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                setBackgroundColor(
+                    Color.rgb(
+                        244,
+                        247,
+                        251
+                    )
+                )
+            }
+
+        root.addView(
             createHeader()
         )
 
-        val scrollView = ScrollView(this)
+        val scrollView =
+            ScrollView(this)
 
-        content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+        content =
+            LinearLayout(this).apply {
 
-            setPadding(
-                dp(16),
-                dp(14),
-                dp(16),
-                dp(40)
-            )
-        }
+                orientation =
+                    LinearLayout.VERTICAL
 
-        scrollView.addView(content)
+                setPadding(
+                    dp(16),
+                    dp(14),
+                    dp(16),
+                    dp(40)
+                )
+            }
+
+        scrollView.addView(
+            content
+        )
 
         root.addView(
             scrollView,
@@ -104,7 +256,8 @@ class MainActivity : Activity() {
 
         return LinearLayout(this).apply {
 
-            orientation = LinearLayout.VERTICAL
+            orientation =
+                LinearLayout.VERTICAL
 
             setPadding(
                 dp(20),
@@ -114,14 +267,23 @@ class MainActivity : Activity() {
             )
 
             setBackgroundColor(
-                Color.rgb(11, 41, 66)
+                Color.rgb(
+                    11,
+                    41,
+                    66
+                )
             )
 
             addView(
                 TextView(this@MainActivity).apply {
-                    text = "⚡ PROFESSIONAL ENGINEERING"
+
+                    text =
+                        "PROFESSIONAL ENGINEERING"
+
                     textSize = 20f
-                    typeface = Typeface.DEFAULT_BOLD
+
+                    typeface =
+                        Typeface.DEFAULT_BOLD
 
                     setTextColor(
                         Color.WHITE
@@ -131,13 +293,18 @@ class MainActivity : Activity() {
 
             addView(
                 TextView(this@MainActivity).apply {
+
                     text =
                         "Electrical Design & Calculation System"
 
                     textSize = 12f
 
                     setTextColor(
-                        Color.rgb(210, 225, 235)
+                        Color.rgb(
+                            210,
+                            225,
+                            235
+                        )
                     )
 
                     setPadding(
@@ -160,75 +327,87 @@ class MainActivity : Activity() {
             "Enter the electrical design data."
         )
 
-        panelNameInput = addEdit(
-            label = "Panel Name",
-            defaultValue = "MDB-01"
-        )
+        panelNameInput =
+            addEdit(
+                "Panel Name",
+                "MDB-01"
+            )
 
-        loadInput = addEdit(
-            label = "Panel Load (kW)",
-            defaultValue = "350",
-            numeric = true
-        )
+        loadInput =
+            addEdit(
+                "Panel Load (kW)",
+                "350",
+                true
+            )
 
-        pfInput = addEdit(
-            label = "Power Factor",
-            defaultValue = "0.90",
-            numeric = true
-        )
+        pfInput =
+            addEdit(
+                "Power Factor",
+                "0.90",
+                true
+            )
 
-        voltageInput = addEdit(
-            label = "System Voltage (V)",
-            defaultValue = "400",
-            numeric = true
-        )
+        voltageInput =
+            addEdit(
+                "System Voltage (V)",
+                "400",
+                true
+            )
 
-        lengthInput = addEdit(
-            label = "Feeder Cable Length (m)",
-            defaultValue = "50",
-            numeric = true
-        )
+        lengthInput =
+            addEdit(
+                "Feeder Cable Length (m)",
+                "50",
+                true
+            )
 
         addSectionTitle(
             "SOURCE OF SUPPLY",
             "Select the source feeding this panel."
         )
 
-        sourceSpinner = addSpinner(
-            label = "Source Type",
-            values = listOf(
-                "Transformer",
-                "Generator",
-                "Another Panel"
+        sourceSpinner =
+            addSpinner(
+                "Source Type",
+                listOf(
+                    "Transformer",
+                    "Generator",
+                    "Another Panel"
+                )
             )
-        )
 
         sourceDataContainer =
             LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
+
+                orientation =
+                    LinearLayout.VERTICAL
             }
 
         content.addView(
             sourceDataContainer
         )
 
-        sourceKvaInput = addDynamicEdit(
-            label = "Source Rating (kVA)",
-            defaultValue = "630"
-        )
+        sourceKvaInput =
+            addDynamicEdit(
+                "Source Rating (kVA)",
+                "630"
+            )
 
-        sourceImpedanceInput = addDynamicEdit(
-            label = "Transformer Impedance / Generator Xd'' (%)",
-            defaultValue = "6.0"
-        )
+        sourceImpedanceInput =
+            addDynamicEdit(
+                "Transformer Impedance / Generator Xd'' (%)",
+                "6.0"
+            )
 
-        upstreamIscInput = addDynamicEdit(
-            label = "Upstream Panel Short Circuit (kA)",
-            defaultValue = "25"
-        )
+        upstreamIscInput =
+            addDynamicEdit(
+                "Upstream Panel Short Circuit (kA)",
+                "25"
+            )
 
         sourceSpinner.onItemSelectedListener =
-            object : AdapterView.OnItemSelectedListener {
+            object :
+                AdapterView.OnItemSelectedListener {
 
                 override fun onNothingSelected(
                     parent: AdapterView<*>?
@@ -241,7 +420,10 @@ class MainActivity : Activity() {
                     position: Int,
                     id: Long
                 ) {
-                    updateSourceFields(position)
+
+                    updateSourceFields(
+                        position
+                    )
                 }
             }
 
@@ -254,57 +436,78 @@ class MainActivity : Activity() {
             "Select cable construction and installation method."
         )
 
-        cableSpinner = addSpinner(
-            label = "Cable Type",
-            values = listOf(
-                "XLPE Copper",
-                "XLPE Aluminium",
-                "PVC Copper",
-                "PVC Aluminium"
+        cableSpinner =
+            addSpinner(
+                "Cable Type",
+                listOf(
+                    "XLPE Copper",
+                    "XLPE Aluminium",
+                    "PVC Copper",
+                    "PVC Aluminium"
+                )
             )
-        )
 
-        installationSpinner = addSpinner(
-            label = "Installation Method",
-            values = InstallationMethod.values().map {
-                readable(it.name)
-            }
-        )
+        val installationValues =
+            InstallationMethod
+                .values()
+                .map { method ->
+                    readable(
+                        method.name
+                    )
+                }
 
-        ambientInput = addEdit(
-            label = "Ambient Correction Factor",
-            defaultValue = "1.00",
-            numeric = true
-        )
+        installationSpinner =
+            addSpinner(
+                "Installation Method",
+                installationValues
+            )
 
-        groupingInput = addEdit(
-            label = "Grouping Correction Factor",
-            defaultValue = "1.00",
-            numeric = true
-        )
+        ambientInput =
+            addEdit(
+                "Ambient Correction Factor",
+                "1.00",
+                true
+            )
 
-        voltageDropInput = addEdit(
-            label = "Maximum Voltage Drop (%)",
-            defaultValue = "3.00",
-            numeric = true
-        )
+        groupingInput =
+            addEdit(
+                "Grouping Correction Factor",
+                "1.00",
+                true
+            )
+
+        voltageDropInput =
+            addEdit(
+                "Maximum Voltage Drop (%)",
+                "3.00",
+                true
+            )
 
         val calculateButton =
             Button(this).apply {
 
-                text = "CALCULATE COMPLETE DESIGN"
+                text =
+                    "CALCULATE COMPLETE DESIGN"
+
                 textSize = 15f
-                typeface = Typeface.DEFAULT_BOLD
+
+                typeface =
+                    Typeface.DEFAULT_BOLD
 
                 setTextColor(
                     Color.WHITE
                 )
 
                 setBackgroundColor(
-                    Color.rgb(21, 101, 192)
+                    Color.rgb(
+                        21,
+                        101,
+                        192
+                    )
                 )
 
                 setOnClickListener {
+
                     calculateDesign()
                 }
             }
@@ -315,6 +518,7 @@ class MainActivity : Activity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(58)
             ).apply {
+
                 setMargins(
                     0,
                     dp(18),
@@ -326,7 +530,9 @@ class MainActivity : Activity() {
 
         resultContainer =
             LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
+
+                orientation =
+                    LinearLayout.VERTICAL
             }
 
         content.addView(
@@ -338,8 +544,21 @@ class MainActivity : Activity() {
         position: Int
     ) {
 
+        if (!::sourceKvaInput.isInitialized) {
+            return
+        }
+
+        if (!::sourceImpedanceInput.isInitialized) {
+            return
+        }
+
+        if (!::upstreamIscInput.isInitialized) {
+            return
+        }
+
         val anotherPanel =
-            position == SOURCE_ANOTHER_PANEL
+            position ==
+                SOURCE_ANOTHER_PANEL
 
         sourceKvaInput.visibility =
             if (anotherPanel) {
@@ -363,30 +582,26 @@ class MainActivity : Activity() {
             }
 
         sourceKvaInput.hint =
-            if (position == SOURCE_TRANSFORMER) {
+            if (
+                position ==
+                    SOURCE_TRANSFORMER
+            ) {
                 "Transformer Rating (kVA)"
             } else {
                 "Generator Rating (kVA)"
             }
 
         sourceImpedanceInput.hint =
-            if (position == SOURCE_TRANSFORMER) {
+            if (
+                position ==
+                    SOURCE_TRANSFORMER
+            ) {
                 "Transformer Impedance (%)"
             } else {
                 "Generator Xd'' (%)"
             }
     }
 
-    /**
-     * UI layer only.
-     *
-     * IMPORTANT:
-     *
-     * The UI does NOT perform engineering calculations.
-     *
-     * All engineering calculations are requested through
-     * the single public ProfessionalEngineeringCore interface.
-     */
     private fun calculateDesign() {
 
         resultContainer.removeAllViews()
@@ -397,41 +612,29 @@ class MainActivity : Activity() {
                 createPanelDesignInput()
 
             /*
-             * SINGLE ENGINEERING ENTRY POINT
+             * THE ONLY ENGINEERING ENTRY POINT.
              *
-             * Do NOT call:
-             *
-             * core.panelDesign
-             * core.cable
-             * core.breaker
-             * core.shortCircuit
-             * or any calculator directly.
-             *
-             * The UI calls ProfessionalEngineeringCore only.
+             * UI never calls individual calculators.
              */
             val result =
                 core.calculatePanelDesign(
                     input
                 )
 
-            showResult(result)
+            showResult(
+                result
+            )
 
-        } catch (exception: Exception) {
+        } catch (error: Throwable) {
 
             addResultCard(
                 "DESIGN ERROR",
-                exception.message
+                error.message
                     ?: "Unable to complete the design."
             )
         }
     }
 
-    /**
-     * Converts UI fields into the existing
-     * PanelDesignInput model.
-     *
-     * No engineering equation is implemented here.
-     */
     private fun createPanelDesignInput():
         PanelDesignInput {
 
@@ -555,6 +758,12 @@ class MainActivity : Activity() {
         val methods =
             InstallationMethod.values()
 
+        if (methods.isEmpty()) {
+            throw IllegalStateException(
+                "No installation methods are defined."
+            )
+        }
+
         val position =
             installationSpinner
                 .selectedItemPosition
@@ -579,13 +788,13 @@ class MainActivity : Activity() {
             "LOAD",
             """
             Panel: ${result.panelName}
-            
+
             Load: ${result.loadKw} kW
-            
+
             Power Factor: ${result.powerFactor}
-            
+
             Design Current: ${result.designCurrentA} A
-            
+
             Voltage: ${result.voltageV} V
             """.trimIndent()
         )
@@ -594,11 +803,11 @@ class MainActivity : Activity() {
             "SOURCE",
             """
             Source: ${sourceName(result.sourceType)}
-            
+
             Required Capacity: ${result.sourceRequiredKva} kVA
-            
+
             Recommended Capacity: ${result.sourceRecommendedKva} kVA
-            
+
             Source Current: ${result.sourceCurrentA} A
             """.trimIndent()
         )
@@ -607,11 +816,11 @@ class MainActivity : Activity() {
             "FEEDER CABLE",
             """
             Cable: ${result.cableDescription}
-            
+
             Selected Size: ${result.cableSizeMm2} mm²
-            
+
             Ampacity: ${result.cableAmpacityA} A
-            
+
             Voltage Drop: ${result.voltageDropPercent} %
             """.trimIndent()
         )
@@ -620,10 +829,10 @@ class MainActivity : Activity() {
             "PROTECTION",
             """
             Main Breaker: ${result.breakerRatingA} A
-            
+
             Breaking Capacity:
             ${result.breakerBreakingCapacityKA} kA
-            
+
             Design Current:
             ${result.designCurrentA} A
             """.trimIndent()
@@ -634,7 +843,7 @@ class MainActivity : Activity() {
             """
             Panel Short Circuit:
             ${result.shortCircuitKA} kA
-            
+
             Fault Level:
             ${result.faultMva} MVA
             """.trimIndent()
@@ -645,30 +854,39 @@ class MainActivity : Activity() {
             "SLD generated by ProfessionalEngineeringCore."
         )
 
-        val sldView =
-            SldDiagramView(this)
+        try {
 
-        sldView.setDiagram(
-            result.sld
-        )
+            val sldView =
+                SldDiagramView(this)
 
-        val sldParams =
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(400)
-            ).apply {
-                setMargins(
-                    0,
-                    dp(8),
-                    0,
-                    dp(20)
-                )
-            }
+            sldView.setDiagram(
+                result.sld
+            )
 
-        resultContainer.addView(
-            sldView,
-            sldParams
-        )
+            resultContainer.addView(
+                sldView,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(400)
+                ).apply {
+
+                    setMargins(
+                        0,
+                        dp(8),
+                        0,
+                        dp(20)
+                    )
+                }
+            )
+
+        } catch (error: Throwable) {
+
+            addResultCard(
+                "SLD ERROR",
+                error.message
+                    ?: "Unable to display SLD."
+            )
+        }
     }
 
     private fun sourceName(
@@ -697,11 +915,18 @@ class MainActivity : Activity() {
             TextView(this).apply {
 
                 text = title
+
                 textSize = 18f
-                typeface = Typeface.DEFAULT_BOLD
+
+                typeface =
+                    Typeface.DEFAULT_BOLD
 
                 setTextColor(
-                    Color.rgb(11, 65, 105)
+                    Color.rgb(
+                        11,
+                        65,
+                        105
+                    )
                 )
 
                 setPadding(
@@ -717,10 +942,15 @@ class MainActivity : Activity() {
             TextView(this).apply {
 
                 text = subtitle
+
                 textSize = 11f
 
                 setTextColor(
-                    Color.rgb(90, 105, 120)
+                    Color.rgb(
+                        90,
+                        105,
+                        120
+                    )
                 )
 
                 setPadding(
@@ -743,8 +973,13 @@ class MainActivity : Activity() {
             EditText(this).apply {
 
                 hint = label
-                setText(defaultValue)
+
+                setText(
+                    defaultValue
+                )
+
                 textSize = 14f
+
                 setSingleLine(true)
 
                 setPadding(
@@ -755,6 +990,7 @@ class MainActivity : Activity() {
                 )
 
                 if (numeric) {
+
                     inputType =
                         InputType.TYPE_CLASS_NUMBER or
                             InputType.TYPE_NUMBER_FLAG_DECIMAL
@@ -767,6 +1003,7 @@ class MainActivity : Activity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(55)
             ).apply {
+
                 setMargins(
                     0,
                     dp(3),
@@ -788,8 +1025,13 @@ class MainActivity : Activity() {
             EditText(this).apply {
 
                 hint = label
-                setText(defaultValue)
+
+                setText(
+                    defaultValue
+                )
+
                 textSize = 14f
+
                 setSingleLine(true)
 
                 inputType =
@@ -810,6 +1052,7 @@ class MainActivity : Activity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(55)
             ).apply {
+
                 setMargins(
                     0,
                     dp(3),
@@ -827,6 +1070,12 @@ class MainActivity : Activity() {
         values: List<String>
     ): Spinner {
 
+        if (values.isEmpty()) {
+            throw IllegalStateException(
+                "$label has no available values."
+            )
+        }
+
         val spinner =
             Spinner(this)
 
@@ -841,7 +1090,8 @@ class MainActivity : Activity() {
             android.R.layout.simple_spinner_dropdown_item
         )
 
-        spinner.adapter = adapter
+        spinner.adapter =
+            adapter
 
         spinner.contentDescription =
             label
@@ -852,6 +1102,7 @@ class MainActivity : Activity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(55)
             ).apply {
+
                 setMargins(
                     0,
                     dp(3),
@@ -868,6 +1119,10 @@ class MainActivity : Activity() {
         title: String,
         text: String
     ) {
+
+        if (!::resultContainer.isInitialized) {
+            return
+        }
 
         val card =
             LinearLayout(this).apply {
@@ -890,12 +1145,20 @@ class MainActivity : Activity() {
         card.addView(
             TextView(this).apply {
 
-                this.text = title
+                this.text =
+                    title
+
                 textSize = 14f
-                typeface = Typeface.DEFAULT_BOLD
+
+                typeface =
+                    Typeface.DEFAULT_BOLD
 
                 setTextColor(
-                    Color.rgb(15, 75, 120)
+                    Color.rgb(
+                        15,
+                        75,
+                        120
+                    )
                 )
             }
         )
@@ -903,11 +1166,17 @@ class MainActivity : Activity() {
         card.addView(
             TextView(this).apply {
 
-                this.text = text
+                this.text =
+                    text
+
                 textSize = 13f
 
                 setTextColor(
-                    Color.rgb(45, 55, 65)
+                    Color.rgb(
+                        45,
+                        55,
+                        65
+                    )
                 )
 
                 setPadding(
@@ -925,6 +1194,7 @@ class MainActivity : Activity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
+
                 setMargins(
                     0,
                     dp(5),
@@ -946,7 +1216,9 @@ class MainActivity : Activity() {
                 .trim()
                 .toDoubleOrNull()
 
-        require(value != null) {
+        require(
+            value != null
+        ) {
             "$fieldName must be a valid number."
         }
 
