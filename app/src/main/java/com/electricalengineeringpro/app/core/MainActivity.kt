@@ -47,18 +47,16 @@ class MainActivity : Activity() {
 
     /*
      * ProfessionalEngineeringCore is the ONLY engineering
-     * calculation interface used by the UI.
+     * calculation interface used by the Android UI.
      */
     private val core: ProfessionalEngineeringCore
         get() = ProfessionalEngineeringCore.instance
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
         super.onCreate(savedInstanceState)
 
-        /*
-         * Never allow a startup exception to make the
-         * application silently disappear.
-         */
         try {
             buildUi()
         } catch (error: Throwable) {
@@ -70,22 +68,27 @@ class MainActivity : Activity() {
         error: Throwable
     ) {
 
-        val root = LinearLayout(this).apply {
+        val root =
+            LinearLayout(this).apply {
 
-            orientation =
-                LinearLayout.VERTICAL
+                orientation =
+                    LinearLayout.VERTICAL
 
-            setPadding(
-                dp(20),
-                dp(24),
-                dp(20),
-                dp(24)
-            )
+                setPadding(
+                    dp(20),
+                    dp(24),
+                    dp(20),
+                    dp(24)
+                )
 
-            setBackgroundColor(
-                Color.rgb(244, 247, 251)
-            )
-        }
+                setBackgroundColor(
+                    Color.rgb(
+                        244,
+                        247,
+                        251
+                    )
+                )
+            }
 
         root.addView(
             TextView(this).apply {
@@ -99,7 +102,11 @@ class MainActivity : Activity() {
                     Typeface.DEFAULT_BOLD
 
                 setTextColor(
-                    Color.rgb(11, 41, 66)
+                    Color.rgb(
+                        11,
+                        41,
+                        66
+                    )
                 )
             }
         )
@@ -116,7 +123,11 @@ class MainActivity : Activity() {
                     Typeface.DEFAULT_BOLD
 
                 setTextColor(
-                    Color.rgb(180, 40, 40)
+                    Color.rgb(
+                        180,
+                        40,
+                        40
+                    )
                 )
 
                 setPadding(
@@ -131,38 +142,39 @@ class MainActivity : Activity() {
         root.addView(
             TextView(this).apply {
 
-                text = buildString {
+                text =
+                    buildString {
 
-                    append(
-                        "Application startup failed.\n\n"
-                    )
+                        append(
+                            "Application startup failed.\n\n"
+                        )
 
-                    append(
-                        "Exception:\n"
-                    )
+                        append(
+                            "Exception:\n"
+                        )
 
-                    append(
-                        error.javaClass.name
-                    )
+                        append(
+                            error.javaClass.name
+                        )
 
-                    append(
-                        "\n\nMessage:\n"
-                    )
+                        append(
+                            "\n\nMessage:\n"
+                        )
 
-                    append(
-                        error.message
-                            ?: "No message"
-                    )
+                        append(
+                            error.message
+                                ?: "No message"
+                        )
 
-                    append(
-                        "\n\nCause:\n"
-                    )
+                        append(
+                            "\n\nCause:\n"
+                        )
 
-                    append(
-                        error.cause?.toString()
-                            ?: "None"
-                    )
-                }
+                        append(
+                            error.cause?.toString()
+                                ?: "None"
+                        )
+                    }
 
                 textSize = 14f
 
@@ -180,11 +192,8 @@ class MainActivity : Activity() {
                 setOnClickListener {
 
                     try {
-
                         buildUi()
-
                     } catch (retryError: Throwable) {
-
                         showStartupError(
                             retryError
                         )
@@ -507,7 +516,6 @@ class MainActivity : Activity() {
                 )
 
                 setOnClickListener {
-
                     calculateDesign()
                 }
             }
@@ -604,6 +612,10 @@ class MainActivity : Activity() {
 
     private fun calculateDesign() {
 
+        if (!::resultContainer.isInitialized) {
+            return
+        }
+
         resultContainer.removeAllViews()
 
         try {
@@ -612,9 +624,9 @@ class MainActivity : Activity() {
                 createPanelDesignInput()
 
             /*
-             * THE ONLY ENGINEERING ENTRY POINT.
+             * UI calls ONLY the facade.
              *
-             * UI never calls individual calculators.
+             * No calculator is called directly.
              */
             val result =
                 core.calculatePanelDesign(
@@ -638,12 +650,21 @@ class MainActivity : Activity() {
     private fun createPanelDesignInput():
         PanelDesignInput {
 
+        val panelName =
+            panelNameInput.text
+                .toString()
+                .trim()
+
+        require(
+            panelName.isNotEmpty()
+        ) {
+            "Panel Name must not be empty."
+        }
+
         return PanelDesignInput(
 
             panelName =
-                panelNameInput.text
-                    .toString()
-                    .trim(),
+                panelName,
 
             loadKw =
                 readDouble(
@@ -726,8 +747,11 @@ class MainActivity : Activity() {
             SOURCE_GENERATOR ->
                 PanelSourceType.GENERATOR
 
-            else ->
+            SOURCE_ANOTHER_PANEL ->
                 PanelSourceType.OTHER_PANEL
+
+            else ->
+                PanelSourceType.TRANSFORMER
         }
     }
 
@@ -747,8 +771,11 @@ class MainActivity : Activity() {
             CABLE_PVC_COPPER ->
                 CableType.PVC_COPPER
 
-            else ->
+            CABLE_PVC_ALUMINIUM ->
                 CableType.PVC_ALUMINIUM
+
+            else ->
+                CableType.XLPE_COPPER
         }
     }
 
@@ -758,10 +785,10 @@ class MainActivity : Activity() {
         val methods =
             InstallationMethod.values()
 
-        if (methods.isEmpty()) {
-            throw IllegalStateException(
-                "No installation methods are defined."
-            )
+        require(
+            methods.isNotEmpty()
+        ) {
+            "No installation methods are defined."
         }
 
         val position =
@@ -1070,10 +1097,10 @@ class MainActivity : Activity() {
         values: List<String>
     ): Spinner {
 
-        if (values.isEmpty()) {
-            throw IllegalStateException(
-                "$label has no available values."
-            )
+        require(
+            values.isNotEmpty()
+        ) {
+            "$label has no available values."
         }
 
         val spinner =
@@ -1247,7 +1274,7 @@ class MainActivity : Activity() {
                 " "
             )
             .replaceFirstChar {
-                it.uppercase()
+                it.uppercaseChar()
             }
     }
 
