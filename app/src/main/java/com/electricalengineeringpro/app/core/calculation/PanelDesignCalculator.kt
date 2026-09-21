@@ -2,13 +2,10 @@ package com.electricalengineeringpro.app.core.calculation
 
 import com.electricalengineeringpro.app.core.model.CableInput
 import com.electricalengineeringpro.app.core.model.ConductorMaterial
-import com.electricalengineeringpro.app.core.model.ElectricalLoad
-import com.electricalengineeringpro.app.core.model.InstallationMethod
 import com.electricalengineeringpro.app.core.model.PanelDesignInput
 import com.electricalengineeringpro.app.core.model.PanelDesignResult
 import com.electricalengineeringpro.app.core.model.PanelSourceType
 import com.electricalengineeringpro.app.core.model.Phase
-import com.electricalengineeringpro.app.core.model.CableInsulation
 import com.electricalengineeringpro.app.core.sld.SldConnection
 import com.electricalengineeringpro.app.core.sld.SldElectricalData
 import com.electricalengineeringpro.app.core.sld.SldNode
@@ -18,6 +15,9 @@ import kotlin.math.sqrt
 
 /**
  * Complete feeder / panel design orchestrator.
+ *
+ * ProfessionalEngineeringCore remains the single engineering
+ * calculation interface.
  *
  * Flow:
  *
@@ -39,22 +39,20 @@ import kotlin.math.sqrt
  *   ↓
  * SLD
  *
- * This class coordinates the existing engineering calculators.
- * It does NOT create another calculation core.
+ * This class only coordinates the existing calculators.
+ * It does NOT create a second calculation core.
  */
 class PanelDesignCalculator(
 
-    private val cableCalculator:
-        CableCalculator =
+    private val cableCalculator: CableCalculator =
         CableCalculator(),
 
-    private val breakerCalculator:
-        BreakerSelectionCalculator =
+    private val breakerCalculator: BreakerSelectionCalculator =
         BreakerSelectionCalculator(),
 
-    private val transformerSizingCalculator:
-        TransformerSizingCalculator =
+    private val transformerSizingCalculator: TransformerSizingCalculator =
         TransformerSizingCalculator()
+
 ) {
 
     fun calculate(
@@ -75,7 +73,7 @@ class PanelDesignCalculator(
                     sqrt(3.0) *
                         input.voltageV *
                         input.powerFactor
-                )
+                    )
 
         /*
          * ---------------------------------------------------------
@@ -88,8 +86,6 @@ class PanelDesignCalculator(
                 input.powerFactor
 
         /*
-         * Recommended transformer/source capacity.
-         *
          * The existing TransformerSizingCalculator remains
          * the single sizing engine.
          */
@@ -126,7 +122,7 @@ class PanelDesignCalculator(
                         (
                             sqrt(3.0) *
                                 input.voltageV
-                        )
+                            )
                 }
 
                 PanelSourceType.OTHER_PANEL -> {
@@ -139,6 +135,8 @@ class PanelDesignCalculator(
          * ---------------------------------------------------------
          * 4. CABLE
          * ---------------------------------------------------------
+         *
+         * Use the existing CableCalculator.
          */
 
         val cableMaterial =
@@ -202,7 +200,7 @@ class PanelDesignCalculator(
                             (
                                 input.sourceImpedancePercent /
                                     100.0
-                            ) /
+                                ) /
                             1000.0
 
                     sourceMva *
@@ -210,7 +208,7 @@ class PanelDesignCalculator(
                         (
                             sqrt(3.0) *
                                 input.voltageV
-                        )
+                            )
                 }
 
                 PanelSourceType.OTHER_PANEL -> {
@@ -247,6 +245,8 @@ class PanelDesignCalculator(
          * ---------------------------------------------------------
          * 7. BREAKER
          * ---------------------------------------------------------
+         *
+         * Use the existing BreakerSelectionCalculator.
          */
 
         val breakerResult =
@@ -451,9 +451,7 @@ class PanelDesignCalculator(
      * Calculates fault current at the panel after adding
      * feeder impedance to the source impedance.
      *
-     * This is a simplified engineering model and should later
-     * be upgraded to the selected standard / IEC calculation
-     * method with complete R/X data.
+     * This is a simplified engineering model.
      */
     private fun calculateFaultAtPanel(
         sourceFaultCurrentKA: Double,
@@ -483,17 +481,11 @@ class PanelDesignCalculator(
                     0.0282
             }
 
-        /*
-         * Cable resistance.
-         */
         val resistanceOhm =
             resistivity *
                 lengthM /
                 cableSizeMm2
 
-        /*
-         * Approximate LV cable reactance.
-         */
         val reactanceOhm =
             0.08 *
                 lengthM /
@@ -507,16 +499,13 @@ class PanelDesignCalculator(
                     reactanceOhm
             )
 
-        /*
-         * Convert source fault current to source impedance.
-         */
         val sourceImpedanceOhm =
             voltageV /
                 (
                     sqrt(3.0) *
                         sourceFaultCurrentKA *
                         1000.0
-                )
+                    )
 
         val totalImpedance =
             sourceImpedanceOhm +
@@ -530,7 +519,7 @@ class PanelDesignCalculator(
             (
                 sqrt(3.0) *
                     totalImpedance
-            ) /
+                ) /
             1000.0
     }
 
@@ -610,19 +599,19 @@ class PanelDesignCalculator(
                             (
                                 sqrt(3.0) *
                                     input.voltageV
-                            )
+                                )
                     },
 
                 shortCircuitKA =
                     shortCircuitKA
             ).asMap() +
                 mapOf(
-                    "Rating" =
+                    "Rating" to
                         "%.0f kVA".format(
                             sourceKva
                         ),
 
-                    "Voltage" =
+                    "Voltage" to
                         "%.0f V".format(
                             input.voltageV
                         )
@@ -655,12 +644,12 @@ class PanelDesignCalculator(
                     voltageDropPercent
             ).asMap() +
                 mapOf(
-                    "Length" =
+                    "Length" to
                         "%.0f m".format(
                             input.lengthM
                         ),
 
-                    "Cable Type" =
+                    "Cable Type" to
                         input.cableType.name
                 )
 
@@ -673,12 +662,12 @@ class PanelDesignCalculator(
                     shortCircuitKA
             ).asMap() +
                 mapOf(
-                    "Load" =
+                    "Load" to
                         "%.1f kW".format(
                             input.loadKw
                         ),
 
-                    "PF" =
+                    "PF" to
                         "%.2f".format(
                             input.powerFactor
                         )
@@ -686,12 +675,12 @@ class PanelDesignCalculator(
 
         val loadData =
             mapOf(
-                "Power" =
+                "Power" to
                     "%.1f kW".format(
                         input.loadKw
                     ),
 
-                "Current" =
+                "Current" to
                     "%.1f A".format(
                         designCurrentA
                     )
